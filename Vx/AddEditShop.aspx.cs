@@ -7,113 +7,124 @@ namespace Vx
 {
     public partial class AddEditShop : System.Web.UI.Page
     {
+        private string connectionString = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
             {
+                // Kiểm tra đăng nhập và quyền
+                if (Session["UserId"] == null || Session["Role"] == null)
+                {
+                    ShowAlert("Vui lòng đăng nhập để tiếp tục!");
+                    Response.Redirect("Login.aspx");
+                    return;
+                }
+
+                if (Session["Role"].ToString() != "Admin")
+                {
+                    ShowAlert("Chỉ Admin mới có quyền truy cập trang này!");
+                    Response.Redirect("AdminDashboard.aspx");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình chuỗi kết nối 'MyDB'!");
+                    return;
+                }
+
                 string mode = Request.QueryString["mode"];
                 if (mode == "edit" && !string.IsNullOrEmpty(Request.QueryString["id"]))
                 {
-                    lblTitle.Text = "Sửa Thông Tin Shop";
-                    LoadShop(Request.QueryString["id"]);
+                    lblTitle.Text = "Sửa Cửa Hàng";
+                    if (!int.TryParse(Request.QueryString["id"], out int shopId))
+                    {
+                        ShowAlert("ID cửa hàng không hợp lệ!");
+                        Response.Redirect("AdminDashboard.aspx");
+                        return;
+                    }
+                    LoadShop(shopId);
                 }
                 else
                 {
-                    lblTitle.Text = "Thêm Shop";
+                    lblTitle.Text = "Thêm Cửa Hàng";
                 }
             }
         }
 
-        private void LoadShop(string shopId)
+        private void LoadShop(int shopId)
         {
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            if (string.IsNullOrEmpty(connStr))
-            {
-                ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình!");
-                return;
-            }
-
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
-                    string query = @"
-                        SELECT ShopName, Description, Address, PhoneNumber 
-                        FROM Shops 
-                        WHERE ShopId = @ShopId";
+                    conn.Open();
+                    string query = "SELECT ShopName FROM Shops WHERE ShopId = @ShopId";
                     SqlCommand cmd = new SqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@ShopId", shopId);
-                    conn.Open();
                     SqlDataReader reader = cmd.ExecuteReader();
+
                     if (reader.Read())
                     {
                         txtShopName.Text = reader["ShopName"].ToString();
-                        txtDescription.Text = reader["Description"].ToString();
-                        txtAddress.Text = reader["Address"].ToString();
-                        txtPhone.Text = reader["PhoneNumber"].ToString();
                     }
                     else
                     {
-                        ShowAlert("Không tìm thấy shop!");
+                        ShowAlert("Không tìm thấy cửa hàng!");
                         Response.Redirect("AdminDashboard.aspx");
                     }
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi tải thông tin shop: {ex.Message}");
+                    ShowAlert($"Lỗi khi tải thông tin cửa hàng: {ex.Message}");
                 }
             }
         }
 
         protected void btnSave_Click(object sender, EventArgs e)
         {
-            // Kiểm tra hợp lệ dữ liệu
             if (string.IsNullOrWhiteSpace(txtShopName.Text))
             {
-                ShowAlert("Tên shop không được để trống!");
+                ShowAlert("Tên cửa hàng không được để trống!");
                 return;
             }
 
             string mode = Request.QueryString["mode"];
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            if (string.IsNullOrEmpty(connStr))
-            {
-                ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình!");
-                return;
-            }
-
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
-                    string query = mode == "add" ?
-                        @"INSERT INTO Shops (ShopId, ShopName, Description, Address, PhoneNumber, CreatedDate) 
-                          VALUES (@ShopId, @ShopName, @Description, @Address, @PhoneNumber, @CreatedDate)" :
-                        @"UPDATE Shops 
-                          SET ShopName = @ShopName, Description = @Description, Address = @Address, PhoneNumber = @PhoneNumber 
-                          WHERE ShopId = @ShopId";
+                    conn.Open();
+                    string query;
+                    SqlCommand cmd;
 
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    string shopId = mode == "add" ? Guid.NewGuid().ToString() : Request.QueryString["id"];
-                    cmd.Parameters.AddWithValue("@ShopId", shopId);
-                    cmd.Parameters.AddWithValue("@ShopName", txtShopName.Text.Trim());
-                    cmd.Parameters.AddWithValue("@Description", txtDescription.Text.Trim());
-                    cmd.Parameters.AddWithValue("@Address", txtAddress.Text.Trim());
-                    cmd.Parameters.AddWithValue("@PhoneNumber", txtPhone.Text.Trim());
                     if (mode == "add")
                     {
-                        cmd.Parameters.AddWithValue("@CreatedDate", DateTime.Now);
+                        query = "INSERT INTO Shops (ShopName) VALUES (@ShopName)";
+                        cmd = new SqlCommand(query, conn);
+                    }
+                    else
+                    {
+                        if (!int.TryParse(Request.QueryString["id"], out int shopId))
+                        {
+                            ShowAlert("ID cửa hàng không hợp lệ!");
+                            return;
+                        }
+                        query = "UPDATE Shops SET ShopName = @ShopName WHERE ShopId = @ShopId";
+                        cmd = new SqlCommand(query, conn);
+                        cmd.Parameters.AddWithValue("@ShopId", shopId);
                     }
 
-                    conn.Open();
+                    cmd.Parameters.AddWithValue("@ShopName", txtShopName.Text.Trim());
                     cmd.ExecuteNonQuery();
 
-                    ShowAlert(mode == "add" ? "Thêm shop thành công!" : "Cập nhật shop thành công!");
+                    ShowAlert(mode == "add" ? "Thêm cửa hàng thành công!" : "Cập nhật cửa hàng thành công!");
                     Response.Redirect("AdminDashboard.aspx");
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi lưu thông tin shop: {ex.Message}");
+                    ShowAlert($"Lỗi khi lưu cửa hàng: {ex.Message}");
                 }
             }
         }
