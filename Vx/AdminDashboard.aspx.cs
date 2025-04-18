@@ -9,346 +9,246 @@ namespace Vx
 {
     public partial class AdminDashboard : System.Web.UI.Page
     {
-        private int productPage
+        private string connectionString = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
+        private const int PageSize = 10;
+
+        private int ProductPage
         {
-            get { return ViewState["ProductPage"] != null ? (int)ViewState["ProductPage"] : 1; }
-            set { ViewState["ProductPage"] = value; }
+            get => ViewState["ProductPage"] != null ? (int)ViewState["ProductPage"] : 1;
+            set => ViewState["ProductPage"] = value;
         }
 
-        private int userPage
+        private int UserPage
         {
-            get { return ViewState["UserPage"] != null ? (int)ViewState["UserPage"] : 1; }
-            set { ViewState["UserPage"] = value; }
+            get => ViewState["UserPage"] != null ? (int)ViewState["UserPage"] : 1;
+            set => ViewState["UserPage"] = value;
         }
 
-        private int orderPage
+        private int ShopPage
         {
-            get { return ViewState["OrderPage"] != null ? (int)ViewState["OrderPage"] : 1; }
-            set { ViewState["OrderPage"] = value; }
+            get => ViewState["ShopPage"] != null ? (int)ViewState["ShopPage"] : 1;
+            set => ViewState["ShopPage"] = value;
         }
 
-        private int shopPage
+        private int OrderPage
         {
-            get { return ViewState["ShopPage"] != null ? (int)ViewState["ShopPage"] : 1; }
-            set { ViewState["ShopPage"] = value; }
+            get => ViewState["OrderPage"] != null ? (int)ViewState["OrderPage"] : 1;
+            set => ViewState["OrderPage"] = value;
         }
-
-        private const int pageSize = 10;
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (Session["UserId"] == null || Session["Role"] == null)
+            {
+                ShowAlert("Vui lòng đăng nhập để tiếp tục!");
+                Response.Redirect("Login.aspx", false);
+                return;
+            }
+
+            string role = Session["Role"].ToString();
+            if (role != "Admin")
+            {
+                ShowAlert("Chỉ Admin mới có quyền truy cập trang này!");
+                Response.Redirect("Home.aspx", false);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra chuỗi kết nối 'MyDB'!");
+                return;
+            }
+
             if (!IsPostBack)
             {
-                // Kiểm tra đăng nhập
-                if (Session["UserId"] == null || Session["Role"] == null)
-                {
-                    ShowAlert("Vui lòng đăng nhập để truy cập trang quản trị!");
-                    Response.Redirect("Login.aspx");
-                    return;
-                }
-
-                // Đảm bảo chỉ Admin truy cập được
-                string role = Session["Role"].ToString();
-                if (role != "Admin")
-                {
-                    ShowAlert("Chỉ Admin mới có quyền truy cập trang này!");
-                    Response.Redirect("Home.aspx");
-                    return;
-                }
-
                 LoadProducts();
                 LoadUsers();
-                LoadOrders();
                 LoadShops();
+                LoadOrders();
             }
         }
 
         private void LoadProducts()
         {
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            if (string.IsNullOrEmpty(connStr))
-            {
-                ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình chuỗi kết nối 'MyDB' trong web.config!");
-                return;
-            }
-
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
-
                     string countQuery = "SELECT COUNT(*) FROM Products";
                     SqlCommand countCmd = new SqlCommand(countQuery, conn);
-                    int totalProducts = (int)countCmd.ExecuteScalar();
+                    int totalRecords = (int)countCmd.ExecuteScalar();
+                    int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
 
                     string query = @"
-                        SELECT ProductId, ProductName, Price, Description, Stock 
+                        SELECT ProductId, ProductName, Price, Description, Stock
                         FROM Products
                         ORDER BY ProductId 
                         OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
-
                     SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@Offset", (productPage - 1) * pageSize);
-                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
-
+                    cmd.Parameters.AddWithValue("@Offset", (ProductPage - 1) * PageSize);
+                    cmd.Parameters.AddWithValue("@PageSize", PageSize);
                     SqlDataAdapter da = new SqlDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     da.Fill(dt);
+
                     gvProducts.DataSource = dt;
                     gvProducts.DataBind();
 
-                    btnPrevProducts.Enabled = productPage > 1;
-                    btnNextProducts.Enabled = productPage * pageSize < totalProducts;
+                    btnPrevProducts.Enabled = ProductPage > 1;
+                    btnNextProducts.Enabled = ProductPage < totalPages;
 
-                    if (dt.Rows.Count == 0)
-                    {
-                        ShowAlert("Không có sản phẩm nào để hiển thị.");
-                    }
+                    lblProductsMessage.Text = dt.Rows.Count == 0 ? "Không có sản phẩm nào để hiển thị." : "";
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi tải danh sách sản phẩm: {ex.Message}");
+                    lblProductsMessage.Text = $"Lỗi khi tải sản phẩm: {ex.Message}";
                 }
             }
         }
 
         private void LoadUsers()
         {
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            if (string.IsNullOrEmpty(connStr))
-            {
-                ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình chuỗi kết nối 'MyDB' trong web.config!");
-                return;
-            }
-
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
-
-                    // Đếm tổng số người dùng
                     string countQuery = "SELECT COUNT(*) FROM Users";
                     SqlCommand countCmd = new SqlCommand(countQuery, conn);
-                    int totalUsers = (int)countCmd.ExecuteScalar();
-                    ShowAlert($"Tổng số người dùng trong bảng Users: {totalUsers}");
+                    int totalRecords = (int)countCmd.ExecuteScalar();
+                    int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
 
-                    // Truy vấn danh sách người dùng
                     string query = @"
-                        SELECT UserId, Username, FullName, Email, Role, ShopId 
-                        FROM Users 
-                        ORDER BY UserId 
+                        SELECT UserId, Username, FullName, Email, Role, ShopId
+                        FROM Users
+                        ORDER BY Username 
                         OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
                     SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@Offset", (userPage - 1) * pageSize);
-                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
-
+                    cmd.Parameters.AddWithValue("@Offset", (UserPage - 1) * PageSize);
+                    cmd.Parameters.AddWithValue("@PageSize", PageSize);
                     SqlDataAdapter da = new SqlDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     da.Fill(dt);
-
-                    if (dt.Rows.Count == 0)
-                    {
-                        ShowAlert("Không có người dùng nào để hiển thị. Vui lòng thêm người dùng mới!");
-                    }
-                    else
-                    {
-                        ShowAlert($"Đã tải thành công {dt.Rows.Count} người dùng.");
-                    }
 
                     gvUsers.DataSource = dt;
                     gvUsers.DataBind();
 
-                    btnPrevUsers.Enabled = userPage > 1;
-                    btnNextUsers.Enabled = userPage * pageSize < totalUsers;
+                    btnPrevUsers.Enabled = UserPage > 1;
+                    btnNextUsers.Enabled = UserPage < totalPages;
+
+                    lblUsersMessage.Text = dt.Rows.Count == 0 ? "Không có người dùng nào để hiển thị." : "";
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi tải danh sách người dùng: {ex.Message}");
-                }
-            }
-        }
-
-        private void LoadOrders()
-        {
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            if (string.IsNullOrEmpty(connStr))
-            {
-                ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình chuỗi kết nối 'MyDB' trong web.config!");
-                return;
-            }
-
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                try
-                {
-                    conn.Open();
-
-                    string countQuery = "SELECT COUNT(*) FROM Orders o";
-                    SqlCommand countCmd = new SqlCommand(countQuery, conn);
-                    int totalOrders = (int)countCmd.ExecuteScalar();
-
-                    string query = @"
-                        SELECT o.OrderId, o.UserId, u.Username, o.OrderDate, o.TotalAmount, o.Status, o.ShippingAddress, o.PhoneNumber
-                        FROM Orders o
-                        JOIN Users u ON o.UserId = u.UserId
-                        ORDER BY o.OrderId 
-                        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
-
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@Offset", (orderPage - 1) * pageSize);
-                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
-
-                    SqlDataAdapter da = new SqlDataAdapter(cmd);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-                    gvOrders.DataSource = dt;
-                    gvOrders.DataBind();
-
-                    btnPrevOrders.Enabled = orderPage > 1;
-                    btnNextOrders.Enabled = orderPage * pageSize < totalOrders;
-
-                    if (dt.Rows.Count == 0)
-                    {
-                        ShowAlert("Không có đơn hàng nào để hiển thị.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ShowAlert($"Có lỗi xảy ra khi tải danh sách đơn hàng: {ex.Message}");
+                    lblUsersMessage.Text = $"Lỗi khi tải người dùng: {ex.Message}";
                 }
             }
         }
 
         private void LoadShops()
         {
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            if (string.IsNullOrEmpty(connStr))
-            {
-                ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình chuỗi kết nối 'MyDB' trong web.config!");
-                return;
-            }
-
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
-
                     string countQuery = "SELECT COUNT(*) FROM Shops";
                     SqlCommand countCmd = new SqlCommand(countQuery, conn);
-                    int totalShops = (int)countCmd.ExecuteScalar();
+                    int totalRecords = (int)countCmd.ExecuteScalar();
+                    int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
 
                     string query = @"
-                        SELECT s.ShopId, s.ShopName, 
-                               (SELECT COUNT(*) FROM Products p WHERE p.ShopId = s.ShopId) AS ProductCount
+                        SELECT s.ShopId, s.ShopName, COUNT(p.ProductId) AS ProductCount
                         FROM Shops s
-                        ORDER BY s.ShopId 
+                        LEFT JOIN Products p ON s.ShopId = p.ShopId
+                        GROUP BY s.ShopId, s.ShopName
+                        ORDER BY s.ShopId
                         OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
                     SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@Offset", (shopPage - 1) * pageSize);
-                    cmd.Parameters.AddWithValue("@PageSize", pageSize);
-
+                    cmd.Parameters.AddWithValue("@Offset", (ShopPage - 1) * PageSize);
+                    cmd.Parameters.AddWithValue("@PageSize", PageSize);
                     SqlDataAdapter da = new SqlDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     da.Fill(dt);
+
                     gvShops.DataSource = dt;
                     gvShops.DataBind();
 
-                    btnPrevShops.Enabled = shopPage > 1;
-                    btnNextShops.Enabled = shopPage * pageSize < totalShops;
+                    btnPrevShops.Enabled = ShopPage > 1;
+                    btnNextShops.Enabled = ShopPage < totalPages;
 
-                    if (dt.Rows.Count == 0)
-                    {
-                        ShowAlert("Không có shop nào để hiển thị. Vui lòng thêm shop mới!");
-                    }
+                    lblShopsMessage.Text = dt.Rows.Count == 0 ? "Không có shop nào để hiển thị." : "";
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi tải danh sách shop: {ex.Message}");
+                    lblShopsMessage.Text = $"Lỗi khi tải cửa hàng: {ex.Message}";
                 }
             }
         }
 
-        protected void btnConfirmOrder_Click(object sender, EventArgs e)
+        private void LoadOrders()
         {
-            Button btn = (Button)sender;
-            string orderId = btn.CommandArgument;
-
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
-                    string query = "UPDATE Orders SET Status = 'Confirmed' WHERE OrderId = @OrderId AND Status = 'Pending'";
+                    string countQuery = "SELECT COUNT(*) FROM Orders";
+                    SqlCommand countCmd = new SqlCommand(countQuery, conn);
+                    int totalRecords = (int)countCmd.ExecuteScalar();
+                    int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
+
+                    string query = @"
+                        SELECT o.OrderId, u.Username, o.OrderDate, o.TotalAmount, o.Status, o.ShippingAddress, o.PhoneNumber
+                        FROM Orders o
+                        INNER JOIN Users u ON o.UserId = u.UserId
+                        ORDER BY o.OrderId
+                        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
                     SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@OrderId", orderId);
-                    int rowsAffected = cmd.ExecuteNonQuery();
+                    cmd.Parameters.AddWithValue("@Offset", (OrderPage - 1) * PageSize);
+                    cmd.Parameters.AddWithValue("@PageSize", PageSize);
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
 
-                    if (rowsAffected > 0)
-                    {
-                        ShowAlert("Đã xác nhận đơn hàng thành công!");
-                    }
-                    else
-                    {
-                        ShowAlert("Không thể xác nhận đơn hàng. Đơn hàng có thể đã được xử lý trước đó!");
-                    }
+                    gvOrders.DataSource = dt;
+                    gvOrders.DataBind();
 
-                    LoadOrders();
+                    btnPrevOrders.Enabled = OrderPage > 1;
+                    btnNextOrders.Enabled = OrderPage < totalPages;
+
+                    lblOrdersMessage.Text = dt.Rows.Count == 0 ? "Không có đơn hàng nào để hiển thị." : "";
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi xác nhận đơn hàng: {ex.Message}");
-                }
-            }
-        }
-
-        protected void btnCancelOrder_Click(object sender, EventArgs e)
-        {
-            Button btn = (Button)sender;
-            string orderId = btn.CommandArgument;
-
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                try
-                {
-                    conn.Open();
-                    string query = "UPDATE Orders SET Status = 'Cancelled' WHERE OrderId = @OrderId AND Status = 'Pending'";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@OrderId", orderId);
-                    int rowsAffected = cmd.ExecuteNonQuery();
-
-                    if (rowsAffected > 0)
-                    {
-                        ShowAlert("Đã hủy đơn hàng thành công!");
-                    }
-                    else
-                    {
-                        ShowAlert("Không thể hủy đơn hàng. Đơn hàng có thể đã được xử lý trước đó!");
-                    }
-
-                    LoadOrders();
-                }
-                catch (Exception ex)
-                {
-                    ShowAlert($"Có lỗi xảy ra khi hủy đơn hàng: {ex.Message}");
+                    lblOrdersMessage.Text = $"Lỗi khi tải đơn hàng: {ex.Message}";
                 }
             }
         }
 
         protected void btnAddProduct_Click(object sender, EventArgs e)
         {
-            Response.Redirect("AddEditProduct.aspx?mode=add");
+            Response.Redirect("AddEditProduct.aspx?mode=add", false);
         }
 
         protected void btnEditProduct_Click(object sender, EventArgs e)
         {
-            Button btn = (Button)sender;
-            string productId = btn.CommandArgument;
-            Response.Redirect($"AddEditProduct.aspx?mode=edit&id={productId}");
+            try
+            {
+                Button btn = (Button)sender;
+                string productId = btn.CommandArgument;
+                if (string.IsNullOrEmpty(productId))
+                {
+                    ShowAlert("ID sản phẩm không hợp lệ!");
+                    return;
+                }
+                Response.Redirect($"AddEditProduct.aspx?mode=edit&id={productId}", false);
+            }
+            catch (Exception ex)
+            {
+                ShowAlert($"Lỗi khi chuyển hướng chỉnh sửa sản phẩm: {ex.Message}");
+            }
         }
 
         protected void btnDeleteProduct_Click(object sender, EventArgs e)
@@ -356,8 +256,7 @@ namespace Vx
             Button btn = (Button)sender;
             string productId = btn.CommandArgument;
 
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
@@ -373,34 +272,43 @@ namespace Vx
                         return;
                     }
 
-                    DeleteProduct(productId);
+                    string query = "DELETE FROM Products WHERE ProductId = @ProductId";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@ProductId", productId);
+                    cmd.ExecuteNonQuery();
+
                     ShowAlert("Xóa sản phẩm thành công!");
                     LoadProducts();
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi xóa sản phẩm: {ex.Message}");
+                    lblProductsMessage.Text = $"Lỗi khi xóa sản phẩm: {ex.Message}";
                 }
             }
         }
 
         protected void btnAddUser_Click(object sender, EventArgs e)
         {
-            Response.Redirect("AddEditUser.aspx?mode=add");
+            Response.Redirect("AddEditUser.aspx?mode=add", false);
         }
 
         protected void btnEditUser_Click(object sender, EventArgs e)
         {
-            Button btn = (Button)sender;
-            string userId = btn.CommandArgument;
-
-            if (string.IsNullOrEmpty(userId))
+            try
             {
-                ShowAlert("ID người dùng không được để trống!");
-                return;
+                Button btn = (Button)sender;
+                string userId = btn.CommandArgument;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    ShowAlert("ID người dùng không hợp lệ!");
+                    return;
+                }
+                Response.Redirect($"AddEditUser.aspx?mode=edit&id={Server.UrlEncode(userId)}", false);
             }
-
-            Response.Redirect($"AddEditUser.aspx?mode=edit&id={userId}");
+            catch (Exception ex)
+            {
+                ShowAlert($"Lỗi khi chuyển hướng chỉnh sửa người dùng: {ex.Message}");
+            }
         }
 
         protected void btnDeleteUser_Click(object sender, EventArgs e)
@@ -408,8 +316,7 @@ namespace Vx
             Button btn = (Button)sender;
             string userId = btn.CommandArgument;
 
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
@@ -425,146 +332,179 @@ namespace Vx
                         return;
                     }
 
-                    DeleteUser(userId);
+                    string query = "DELETE FROM Users WHERE UserId = @UserId";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+                    cmd.ExecuteNonQuery();
+
                     ShowAlert("Xóa người dùng thành công!");
                     LoadUsers();
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Có lỗi xảy ra khi xóa người dùng: {ex.Message}");
+                    lblUsersMessage.Text = $"Lỗi khi xóa người dùng: {ex.Message}";
                 }
             }
         }
 
         protected void btnAddShop_Click(object sender, EventArgs e)
         {
-            Response.Redirect("AddEditShop.aspx?mode=add");
+            Response.Redirect("AddEditShop.aspx?mode=add", false);
         }
 
         protected void btnEditShop_Click(object sender, EventArgs e)
         {
+            try
+            {
+                Button btn = (Button)sender;
+                string shopId = btn.CommandArgument;
+                if (string.IsNullOrEmpty(shopId))
+                {
+                    ShowAlert("ID shop không hợp lệ!");
+                    return;
+                }
+                Response.Redirect($"AddEditShop.aspx?mode=edit&id={shopId}", false);
+            }
+            catch (Exception ex)
+            {
+                ShowAlert($"Lỗi khi chuyển hướng chỉnh sửa shop: {ex.Message}");
+            }
+        }
+
+        protected void btnConfirmOrder_Click(object sender, EventArgs e)
+        {
             Button btn = (Button)sender;
-            string shopId = btn.CommandArgument;
-            if (!string.IsNullOrEmpty(shopId))
-            {
-                Response.Redirect($"AddEditShop.aspx?mode=edit&id={shopId}");
-            }
-            else
-            {
-                ShowAlert("ID shop không hợp lệ!");
-            }
-        }
+            string orderId = btn.CommandArgument;
 
-        private void DeleteProduct(string productId)
-        {
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            using (SqlConnection conn = new SqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
-                    string query = "DELETE FROM Products WHERE ProductId = @ProductId";
+                    string query = "UPDATE Orders SET Status = 'Confirmed' WHERE OrderId = @OrderId AND Status = 'Pending'";
                     SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@ProductId", productId);
-                    cmd.ExecuteNonQuery();
+                    cmd.Parameters.AddWithValue("@OrderId", orderId);
+                    int rowsAffected = cmd.ExecuteNonQuery();
+
+                    if (rowsAffected > 0)
+                    {
+                        ShowAlert("Xác nhận đơn hàng thành công!");
+                    }
+                    else
+                    {
+                        ShowAlert("Không thể xác nhận đơn hàng. Đơn hàng có thể đã được xử lý!");
+                    }
+                    LoadOrders();
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception($"Lỗi khi xóa sản phẩm: {ex.Message}");
+                    lblOrdersMessage.Text = $"Lỗi khi xác nhận đơn hàng: {ex.Message}";
                 }
             }
         }
 
-        private void DeleteUser(string userId)
+        protected void btnCancelOrder_Click(object sender, EventArgs e)
         {
-            string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
-            using (SqlConnection conn = new SqlConnection(connStr))
+            Button btn = (Button)sender;
+            string orderId = btn.CommandArgument;
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
-                    string query = "DELETE FROM Users WHERE UserId = @UserId";
+                    string query = "UPDATE Orders SET Status = 'Cancelled' WHERE OrderId = @OrderId AND Status = 'Pending'";
                     SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@UserId", userId);
-                    cmd.ExecuteNonQuery();
+                    cmd.Parameters.AddWithValue("@OrderId", orderId);
+                    int rowsAffected = cmd.ExecuteNonQuery();
+
+                    if (rowsAffected > 0)
+                    {
+                        ShowAlert("Hủy đơn hàng thành công!");
+                    }
+                    else
+                    {
+                        ShowAlert("Không thể hủy đơn hàng. Đơn hàng có thể đã được xử lý!");
+                    }
+                    LoadOrders();
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception($"Lỗi khi xóa người dùng: {ex.Message}");
+                    lblOrdersMessage.Text = $"Lỗi khi hủy đơn hàng: {ex.Message}";
                 }
             }
         }
 
         protected void btnPrevProducts_Click(object sender, EventArgs e)
         {
-            if (productPage > 1)
+            if (ProductPage > 1)
             {
-                productPage--;
+                ProductPage--;
                 LoadProducts();
             }
         }
 
         protected void btnNextProducts_Click(object sender, EventArgs e)
         {
-            productPage++;
+            ProductPage++;
             LoadProducts();
         }
 
         protected void btnPrevUsers_Click(object sender, EventArgs e)
         {
-            if (userPage > 1)
+            if (UserPage > 1)
             {
-                userPage--;
+                UserPage--;
                 LoadUsers();
             }
         }
 
         protected void btnNextUsers_Click(object sender, EventArgs e)
         {
-            userPage++;
+            UserPage++;
             LoadUsers();
-        }
-
-        protected void btnPrevOrders_Click(object sender, EventArgs e)
-        {
-            if (orderPage > 1)
-            {
-                orderPage--;
-                LoadOrders();
-            }
-        }
-
-        protected void btnNextOrders_Click(object sender, EventArgs e)
-        {
-            orderPage++;
-            LoadOrders();
         }
 
         protected void btnPrevShops_Click(object sender, EventArgs e)
         {
-            if (shopPage > 1)
+            if (ShopPage > 1)
             {
-                shopPage--;
+                ShopPage--;
                 LoadShops();
             }
         }
 
         protected void btnNextShops_Click(object sender, EventArgs e)
         {
-            shopPage++;
+            ShopPage++;
             LoadShops();
+        }
+
+        protected void btnPrevOrders_Click(object sender, EventArgs e)
+        {
+            if (OrderPage > 1)
+            {
+                OrderPage--;
+                LoadOrders();
+            }
+        }
+
+        protected void btnNextOrders_Click(object sender, EventArgs e)
+        {
+            OrderPage++;
+            LoadOrders();
         }
 
         protected void btnLogout_Click(object sender, EventArgs e)
         {
             Session.Clear();
             Session.Abandon();
-            Response.Redirect("Login.aspx");
+            Response.Redirect("Login.aspx", false);
         }
 
         private void ShowAlert(string message)
         {
-            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message}');", true);
+            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message.Replace("'", "\\'")}');", true);
         }
     }
 }

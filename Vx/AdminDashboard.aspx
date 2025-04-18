@@ -332,6 +332,7 @@
                 <div class="tab-pane fade show active" id="products" role="tabpanel" aria-labelledby="products-tab">
                     <div class="table-container">
                         <asp:Button ID="btnAddProduct" runat="server" Text="Thêm Sản Phẩm" CssClass="btn-action btn-add mb-3" OnClick="btnAddProduct_Click" />
+                        <asp:Label ID="lblProductsMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
                         <asp:GridView ID="gvProducts" runat="server" AutoGenerateColumns="false" CssClass="table">
                             <Columns>
                                 <asp:BoundField DataField="ProductId" HeaderText="ID" />
@@ -357,6 +358,7 @@
                 <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
                     <div class="table-container">
                         <asp:Button ID="btnAddUser" runat="server" Text="Thêm Người Dùng" CssClass="btn-action btn-add mb-3" OnClick="btnAddUser_Click" />
+                        <asp:Label ID="lblUsersMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
                         <asp:GridView ID="gvUsers" runat="server" AutoGenerateColumns="false" CssClass="table">
                             <Columns>
                                 <asp:BoundField DataField="UserId" HeaderText="ID" />
@@ -383,6 +385,7 @@
                 <div class="tab-pane fade" id="shops" role="tabpanel" aria-labelledby="shops-tab">
                     <div class="table-container">
                         <asp:Button ID="btnAddShop" runat="server" Text="Thêm Shop" CssClass="btn-action btn-add mb-3" OnClick="btnAddShop_Click" />
+                        <asp:Label ID="lblShopsMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
                         <asp:GridView ID="gvShops" runat="server" AutoGenerateColumns="false" CssClass="table">
                             <Columns>
                                 <asp:BoundField DataField="ShopId" HeaderText="Shop ID" />
@@ -404,6 +407,7 @@
 
                 <div class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab">
                     <div class="table-container">
+                        <asp:Label ID="lblOrdersMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
                         <asp:GridView ID="gvOrders" runat="server" AutoGenerateColumns="false" CssClass="table">
                             <Columns>
                                 <asp:BoundField DataField="OrderId" HeaderText="ID Đơn Hàng" />

@@ -51,6 +51,15 @@ namespace Vx
         protected global::System.Web.UI.WebControls.Button btnAddProduct;
 
         /// <summary>
+        /// lblProductsMessage control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblProductsMessage;
+
+        /// <summary>
         /// gvProducts control.
         /// </summary>
         /// <remarks>
@@ -85,6 +94,15 @@ namespace Vx
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnAddUser;
+
+        /// <summary>
+        /// lblUsersMessage control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblUsersMessage;
 
         /// <summary>
         /// gvUsers control.
@@ -123,6 +141,15 @@ namespace Vx
         protected global::System.Web.UI.WebControls.Button btnAddShop;
 
         /// <summary>
+        /// lblShopsMessage control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblShopsMessage;
+
+        /// <summary>
         /// gvShops control.
         /// </summary>
         /// <remarks>
@@ -148,6 +175,15 @@ namespace Vx
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnNextShops;
+
+        /// <summary>
+        /// lblOrdersMessage control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblOrdersMessage;
 
         /// <summary>
         /// gvOrders control.

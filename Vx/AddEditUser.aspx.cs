@@ -15,24 +15,23 @@ namespace Vx
         {
             if (!IsPostBack)
             {
-                // Kiểm tra đăng nhập và quyền
                 if (Session["UserId"] == null || Session["Role"] == null)
                 {
                     ShowAlert("Vui lòng đăng nhập để tiếp tục!");
-                    Response.Redirect("Login.aspx");
+                    Response.Redirect("Login.aspx", false);
                     return;
                 }
 
                 if (Session["Role"].ToString() != "Admin")
                 {
                     ShowAlert("Chỉ Admin mới có quyền truy cập trang này!");
-                    Response.Redirect("AdminDashboard.aspx");
+                    Response.Redirect("AdminDashboard.aspx", false);
                     return;
                 }
 
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra cấu hình chuỗi kết nối 'MyDB'!");
+                    ShowAlert("Không thể kết nối đến cơ sở dữ liệu. Vui lòng kiểm tra chuỗi kết nối 'MyDB'!");
                     return;
                 }
 
@@ -42,13 +41,7 @@ namespace Vx
                 if (mode == "edit" && !string.IsNullOrEmpty(Request.QueryString["id"]))
                 {
                     lblTitle.Text = "Sửa Người Dùng";
-                    txtUsername.ReadOnly = true; // Chỉ đọc Username
-                    if (!int.TryParse(Request.QueryString["id"], out int userId))
-                    {
-                        ShowAlert("ID người dùng không hợp lệ!");
-                        Response.Redirect("AdminDashboard.aspx");
-                        return;
-                    }
+                    string userId = Request.QueryString["id"];
                     LoadUser(userId);
                 }
                 else
@@ -75,16 +68,16 @@ namespace Vx
                     ddlShop.DataTextField = "ShopName";
                     ddlShop.DataValueField = "ShopId";
                     ddlShop.DataBind();
-                    ddlShop.Items.Insert(0, new ListItem("-- Chọn Cửa Hàng --", ""));
+                    ddlShop.Items.Insert(0, new ListItem("-- Chọn Cửa Hàng (Tùy chọn) --", ""));
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Lỗi khi tải danh sách cửa hàng: {ex.Message}");
+                    lblMessage.Text = $"Lỗi khi tải danh sách cửa hàng: {ex.Message}";
                 }
             }
         }
 
-        private void LoadUser(int userId)
+        private void LoadUser(string userId)
         {
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
@@ -113,47 +106,58 @@ namespace Vx
                     else
                     {
                         ShowAlert("Không tìm thấy người dùng!");
-                        Response.Redirect("AdminDashboard.aspx");
+                        Response.Redirect("AdminDashboard.aspx", false);
                     }
                 }
                 catch (Exception ex)
                 {
-                    ShowAlert($"Lỗi khi tải thông tin người dùng: {ex.Message}");
+                    lblMessage.Text = $"Lỗi khi tải thông tin người dùng: {ex.Message}";
                 }
             }
         }
 
         protected void btnSave_Click(object sender, EventArgs e)
         {
-            // Kiểm tra hợp lệ dữ liệu
-            if (string.IsNullOrWhiteSpace(txtFullName.Text) ||
-                string.IsNullOrWhiteSpace(txtEmail.Text) ||
-                string.IsNullOrWhiteSpace(ddlRole.SelectedValue))
+            try
             {
-                ShowAlert("Vui lòng điền đầy đủ các trường bắt buộc (Họ Tên, Email, Vai Trò)!");
-                return;
-            }
-
-            if (!IsValidEmail(txtEmail.Text))
-            {
-                ShowAlert("Email không hợp lệ!");
-                return;
-            }
-
-            int? shopId = null;
-            if (!string.IsNullOrEmpty(ddlShop.SelectedValue))
-            {
-                if (!int.TryParse(ddlShop.SelectedValue, out int parsedShopId))
+                if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtFullName.Text) || string.IsNullOrWhiteSpace(txtEmail.Text))
                 {
-                    ShowAlert("Cửa hàng không hợp lệ!");
+                    lblMessage.Text = "Vui lòng điền đầy đủ Tên đăng nhập, Họ Tên và Email!";
                     return;
                 }
-                shopId = parsedShopId;
-            }
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            {
-                try
+                if (!IsValidEmail(txtEmail.Text))
+                {
+                    lblMessage.Text = "Email không hợp lệ!";
+                    return;
+                }
+
+                int? shopId = null;
+                if (!string.IsNullOrEmpty(ddlShop.SelectedValue))
+                {
+                    if (!int.TryParse(ddlShop.SelectedValue, out int parsedShopId))
+                    {
+                        lblMessage.Text = "Cửa hàng không hợp lệ!";
+                        return;
+                    }
+                    shopId = parsedShopId;
+
+                    using (SqlConnection conn = new SqlConnection(connectionString))
+                    {
+                        conn.Open();
+                        string checkQuery = "SELECT COUNT(*) FROM Shops WHERE ShopId = @ShopId";
+                        SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
+                        checkCmd.Parameters.AddWithValue("@ShopId", shopId);
+                        int count = (int)checkCmd.ExecuteScalar();
+                        if (count == 0)
+                        {
+                            lblMessage.Text = "Cửa hàng được chọn không tồn tại!";
+                            return;
+                        }
+                    }
+                }
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
                     string query;
@@ -161,53 +165,71 @@ namespace Vx
 
                     if (Request.QueryString["mode"] == "add")
                     {
-                        if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtPassword.Text))
+                        if (string.IsNullOrWhiteSpace(txtPassword.Text))
                         {
-                            ShowAlert("Tên đăng nhập và mật khẩu không được để trống khi thêm người dùng!");
+                            lblMessage.Text = "Mật khẩu không được để trống khi thêm người dùng!";
                             return;
                         }
 
-                        // Kiểm tra username đã tồn tại
-                        string checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = @Username";
+                        string checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = @Username OR Email = @Email";
                         SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
                         checkCmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
+                        checkCmd.Parameters.AddWithValue("@Email", txtEmail.Text.Trim());
                         int count = (int)checkCmd.ExecuteScalar();
                         if (count > 0)
                         {
-                            ShowAlert("Tên đăng nhập đã tồn tại!");
+                            lblMessage.Text = "Tên đăng nhập hoặc Email đã tồn tại!";
+                            return;
+                        }
+
+                        string userId = Guid.NewGuid().ToString(); // Tạo UserId ngẫu nhiên
+                        query = @"
+                            INSERT INTO Users (UserId, Username, PasswordHash, FullName, Email, Role, ShopId)
+                            VALUES (@UserId, @Username, @PasswordHash, @FullName, @Email, @Role, @ShopId)";
+                        cmd = new SqlCommand(query, conn);
+                        cmd.Parameters.AddWithValue("@UserId", userId);
+                        cmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
+                        cmd.Parameters.AddWithValue("@PasswordHash", txtPassword.Text); // Nên mã hóa mật khẩu
+                    }
+                    else
+                    {
+                        string userId = Request.QueryString["id"];
+                        if (string.IsNullOrEmpty(userId))
+                        {
+                            lblMessage.Text = "ID người dùng không hợp lệ!";
+                            return;
+                        }
+
+                        string checkQuery = "SELECT COUNT(*) FROM Users WHERE (Username = @Username OR Email = @Email) AND UserId != @UserId";
+                        SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
+                        checkCmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
+                        checkCmd.Parameters.AddWithValue("@Email", txtEmail.Text.Trim());
+                        checkCmd.Parameters.AddWithValue("@UserId", userId);
+                        int count = (int)checkCmd.ExecuteScalar();
+                        if (count > 0)
+                        {
+                            lblMessage.Text = "Tên đăng nhập hoặc Email đã tồn tại!";
                             return;
                         }
 
                         query = @"
-                            INSERT INTO Users (Username, Password, FullName, Email, Role, ShopId)
-                            VALUES (@Username, @Password, @FullName, @Email, @Role, @ShopId)";
-                        cmd = new SqlCommand(query, conn);
-                        cmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Password", txtPassword.Text); // Nên mã hóa mật khẩu
-                    }
-                    else
-                    {
-                        if (!int.TryParse(Request.QueryString["id"], out int userId))
-                        {
-                            ShowAlert("ID người dùng không hợp lệ!");
-                            return;
-                        }
-                        query = @"
                             UPDATE Users 
-                            SET FullName = @FullName, 
+                            SET Username = @Username, 
+                                FullName = @FullName, 
                                 Email = @Email, 
                                 Role = @Role, 
                                 ShopId = @ShopId";
                         if (!string.IsNullOrWhiteSpace(txtPassword.Text))
                         {
-                            query += ", Password = @Password";
+                            query += ", PasswordHash = @PasswordHash";
                         }
                         query += " WHERE UserId = @UserId";
                         cmd = new SqlCommand(query, conn);
                         cmd.Parameters.AddWithValue("@UserId", userId);
+                        cmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
                         if (!string.IsNullOrWhiteSpace(txtPassword.Text))
                         {
-                            cmd.Parameters.AddWithValue("@Password", txtPassword.Text); // Nên mã hóa mật khẩu
+                            cmd.Parameters.AddWithValue("@PasswordHash", txtPassword.Text); // Nên mã hóa mật khẩu
                         }
                     }
 
@@ -219,18 +241,18 @@ namespace Vx
                     cmd.ExecuteNonQuery();
 
                     ShowAlert(Request.QueryString["mode"] == "add" ? "Thêm người dùng thành công!" : "Cập nhật người dùng thành công!");
-                    Response.Redirect("AdminDashboard.aspx");
+                    Response.Redirect("AdminDashboard.aspx", false);
                 }
-                catch (Exception ex)
-                {
-                    ShowAlert($"Lỗi khi lưu người dùng: {ex.Message}");
-                }
+            }
+            catch (Exception ex)
+            {
+                lblMessage.Text = $"Lỗi khi lưu người dùng: {ex.Message}";
             }
         }
 
         protected void btnBack_Click(object sender, EventArgs e)
         {
-            Response.Redirect("AdminDashboard.aspx");
+            Response.Redirect("AdminDashboard.aspx", false);
         }
 
         private bool IsValidEmail(string email)
@@ -248,7 +270,7 @@ namespace Vx
 
         private void ShowAlert(string message)
         {
-            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message}');", true);
+            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message.Replace("'", "\\'")}');", true);
         }
     }
 }

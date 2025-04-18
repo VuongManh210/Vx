@@ -7,91 +7,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thêm/Sửa Người Dùng</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: 'Arial', sans-serif;
-        }
-
         body {
             background: #f4f7fa;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: linear-gradient(90deg, #007bff, #00c4cc);
-            padding: 0 20px;
-            height: 70px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 1000;
-        }
-
-        .navbar-brand {
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
-            text-transform: uppercase;
-        }
-
-        .main-content {
-            margin-top: 90px;
+            font-family: 'Arial', sans-serif;
             padding: 20px;
-            flex-grow: 1;
         }
 
-        .form-container {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+        .container {
             max-width: 600px;
             margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .section-title {
-            font-size: 28px;
+        .form-title {
+            font-size: 24px;
             font-weight: 600;
             color: #333;
-            margin-bottom: 20px;
             text-align: center;
-            text-transform: uppercase;
+            margin-bottom: 20px;
         }
 
-        .form-label {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-control, .form-select {
-            border-radius: 5px;
-            border: 1px solid #ced4da;
-            padding: 8px;
+        .form-group {
             margin-bottom: 15px;
         }
 
-        .btn-action {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 15px;
-            font-size: 14px;
+        .form-group label {
             font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.3s ease, background 0.3s ease;
-            margin-right: 10px;
+            color: #333;
+        }
+
+        .form-control {
+            border-radius: 5px;
         }
 
         .btn-save {
             background: linear-gradient(90deg, #28a745, #34c759);
             color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: transform 0.3s ease, background 0.3s ease;
         }
 
         .btn-save:hover {
@@ -102,6 +62,11 @@
         .btn-back {
             background: linear-gradient(90deg, #6c757d, #829099);
             color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: transform 0.3s ease, background 0.3s ease;
         }
 
         .btn-back:hover {
@@ -109,66 +74,57 @@
             transform: scale(1.05);
         }
 
-        .footer {
-            background: linear-gradient(135deg, #0056b3, #00c4cc);
-            color: #fff;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            flex-shrink: 0;
+        .text-danger {
+            font-size: 14px;
+            margin-top: 5px;
         }
     </style>
 </head>
 <body>
     <form id="form1" runat="server">
         <asp:ScriptManager ID="ScriptManager1" runat="server" />
+        <div class="container">
+            <asp:Label ID="lblTitle" runat="server" CssClass="form-title" Text="Thêm Người Dùng" />
+            <asp:Label ID="lblMessage" runat="server" ForeColor="Red" CssClass="text-danger" />
 
-        <nav class="navbar">
-            <a href="AdminDashboard.aspx" class="navbar-brand">Admin Dashboard</a>
-        </nav>
-
-        <div class="main-content">
-            <asp:Label ID="lblTitle" runat="server" CssClass="section-title" />
-            <div class="form-container">
-                <div class="mb-3">
-                    <label for="txtUsername" class="form-label">Tên Đăng Nhập</label>
-                    <asp:TextBox ID="txtUsername" runat="server" CssClass="form-control" placeholder="Nhập tên đăng nhập" />
-                </div>
-                <div class="mb-3">
-                    <label for="txtPassword" class="form-label">Mật Khẩu (Để trống nếu không thay đổi)</label>
-                    <asp:TextBox ID="txtPassword" runat="server" CssClass="form-control" TextMode="Password" placeholder="Nhập mật khẩu mới" />
-                </div>
-                <div class="mb-3">
-                    <label for="txtFullName" class="form-label">Họ Tên</label>
-                    <asp:TextBox ID="txtFullName" runat="server" CssClass="form-control" placeholder="Nhập họ tên" />
-                </div>
-                <div class="mb-3">
-                    <label for="txtEmail" class="form-label">Email</label>
-                    <asp:TextBox ID="txtEmail" runat="server" CssClass="form-control" TextMode="Email" placeholder="Nhập email" />
-                </div>
-                <div class="mb-3">
-                    <label for="ddlRole" class="form-label">Vai Trò</label>
-                    <asp:DropDownList ID="ddlRole" runat="server" CssClass="form-select">
-                        <asp:ListItem Text="-- Chọn Vai Trò --" Value="" />
-                        <asp:ListItem Text="Admin" Value="Admin" />
-                        <asp:ListItem Text="ShopOwner" Value="ShopOwner" />
-                        <asp:ListItem Text="User" Value="User" />
-                    </asp:DropDownList>
-                </div>
-                <div class="mb-3">
-                    <label for="ddlShop" class="form-label">Cửa Hàng</label>
-                    <asp:DropDownList ID="ddlShop" runat="server" CssClass="form-select" />
-                </div>
-                <div class="text-center">
-                    <asp:Button ID="btnSave" runat="server" Text="Lưu" CssClass="btn-action btn-save" OnClick="btnSave_Click" />
-                    <asp:Button ID="btnBack" runat="server" Text="Quay Lại" CssClass="btn-action btn-back" OnClick="btnBack_Click" />
-                </div>
+            <div class="form-group">
+                <label for="txtUsername">Tên Đăng Nhập</label>
+                <asp:TextBox ID="txtUsername" runat="server" CssClass="form-control" />
             </div>
-        </div>
 
-        <div class="footer">
-            <span>© 2025 Manhdz Store. All rights reserved.</span>
+            <div class="form-group">
+                <label for="txtPassword">Mật Khẩu</label>
+                <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="txtFullName">Họ Tên</label>
+                <asp:TextBox ID="txtFullName" runat="server" CssClass="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="txtEmail">Email</label>
+                <asp:TextBox ID="txtEmail" runat="server" TextMode="Email" CssClass="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="ddlRole">Vai Trò</label>
+                <asp:DropDownList ID="ddlRole" runat="server" CssClass="form-control">
+                    <asp:ListItem Value="Admin">Admin</asp:ListItem>
+                    <asp:ListItem Value="User">User</asp:ListItem>
+                    <asp:ListItem Value="ShopOwner">ShopOwner</asp:ListItem>
+                </asp:DropDownList>
+            </div>
+
+            <div class="form-group">
+                <label for="ddlShop">Cửa Hàng (Tùy chọn)</label>
+                <asp:DropDownList ID="ddlShop" runat="server" CssClass="form-control" />
+            </div>
+
+            <div class="form-group text-center">
+                <asp:Button ID="btnSave" runat="server" Text="Lưu" CssClass="btn-save" OnClick="btnSave_Click" />
+                <asp:Button ID="btnBack" runat="server" Text="Quay Lại" CssClass="btn-back" OnClick="btnBack_Click" />
+            </div>
         </div>
     </form>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
