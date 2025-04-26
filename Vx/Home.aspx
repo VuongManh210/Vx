@@ -24,7 +24,7 @@
             min-height: 100vh; /* Chiều cao tối thiểu bằng viewport */
         }
 
-        /* Thanh menu ngang (giữ nguyên) */
+        /* Thanh menu ngang */
         .navbar {
             background: linear-gradient(90deg, #007bff, #00c4cc);
             padding: 0 20px;
@@ -92,6 +92,7 @@
             border-right: 1px solid #ddd;
             border-radius: 25px 0 0 25px;
             color: #555;
+            margin-right: 5px; /* Thêm khoảng cách giữa các dropdown */
         }
 
         .search-container input {
@@ -127,7 +128,7 @@
             margin-right: 10px;
         }
 
-        .logout-btn {
+        .logout-btn, .login-btn {
             background: #dc3545;
             color: white;
             border: none;
@@ -137,11 +138,21 @@
             font-size: 14px;
             font-weight: 600;
             transition: transform 0.3s ease, background 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
         }
 
-        .logout-btn:hover {
+        .login-btn {
+            background: #28a745;
+        }
+
+        .logout-btn:hover, .login-btn:hover {
             background: #c82333;
             transform: scale(1.05);
+        }
+
+        .login-btn:hover {
+            background: #218838;
         }
 
         .cart {
@@ -189,14 +200,14 @@
 
         /* Banner ngang với Swiper */
         .banner-container {
-            height: 300px; /* Chiều cao banner */
-            margin-top: 70px; /* Đặt margin-top bằng chiều cao của navbar */
+            height: 300px;
+            margin-top: 70px;
             position: relative;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            width: 80%; /* Khớp với max-width của .sanpham-container */
-            max-width: 80%; /* Giới hạn tối đa giống .sanpham-container */
+            width: 80%;
+            max-width: 80%;
             margin-left: auto;
-            margin-right: auto; /* Căn giữa banner */
+            margin-right: auto;
         }
 
         .swiper-slide {
@@ -206,12 +217,12 @@
         .swiper-slide img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Đảm bảo hình ảnh không bị méo */
+            object-fit: cover;
             transition: transform 10s ease;
         }
 
         .swiper-slide:hover img {
-            transform: scale(1.1); /* Hiệu ứng zoom nhẹ khi hover */
+            transform: scale(1.1);
         }
 
         .banner-overlay {
@@ -220,7 +231,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.3); /* Lớp phủ tối để làm nổi bật chữ */
+            background: rgba(0, 0, 0, 0.3);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -232,7 +243,7 @@
         }
 
         .swiper-slide:hover .banner-overlay {
-            opacity: 1; /* Hiển thị lớp phủ khi hover */
+            opacity: 1;
         }
 
         .banner-overlay h2 {
@@ -262,24 +273,23 @@
             transform: scale(1.05);
         }
 
-        /* Nút điều hướng của Swiper - Chỉ giữ biểu tượng < > */
         .swiper-button-prev, .swiper-button-next {
-            color: #fff; /* Màu biểu tượng */
-            background: transparent; /* Xóa nền */
+            color: #fff;
+            background: transparent;
             width: 30px;
             height: 30px;
-            border: none; /* Xóa viền */
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.3s ease; /* Hiệu ứng đổi màu biểu tượng khi hover */
+            transition: color 0.3s ease;
             margin-top: 0;
             top: 50%;
             transform: translateY(-50%);
         }
 
         .swiper-button-prev:hover, .swiper-button-next:hover {
-            color: #ffdd57; /* Đổi màu biểu tượng khi hover */
+            color: #ffdd57;
         }
 
         .swiper-button-prev {
@@ -290,7 +300,6 @@
             right: 10px;
         }
 
-        /* Chấm phân trang của Swiper */
         .swiper-pagination-bullet {
             background: #fff;
             opacity: 0.5;
@@ -303,17 +312,17 @@
 
         /* Nội dung sản phẩm */
         .container {
-            padding-top: 30px; /* Giảm padding-top để không bị khoảng trống lớn sau banner */
+            padding-top: 30px;
             display: flex;
             justify-content: center;
-            flex-grow: 1; /* Đảm bảo nội dung chiếm hết không gian còn lại */
+            flex-grow: 1;
         }
 
         .sanpham-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 20px;
-            max-width: 80%; /* Đảm bảo chiều rộng tối đa là 80% */
+            max-width: 80%;
             margin: auto;
         }
 
@@ -455,13 +464,13 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
-        /* Footer được thiết kế lại */
+        /* Footer */
         .footer {
-            background: linear-gradient(135deg, #0056b3, #00c4cc); /* Gradient đẹp */
+            background: linear-gradient(135deg, #0056b3, #00c4cc);
             color: #fff;
             padding: 30px 20px;
             text-align: center;
-            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2); /* Bóng đổ phía trên */
+            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2);
             width: 100%;
         }
 
@@ -538,10 +547,10 @@
             }
 
             .banner-container {
-                height: 200px; /* Giảm chiều cao banner trên thiết bị di động */
-                margin-top: 60px; /* Điều chỉnh margin-top trên thiết bị di động để sát navbar */
-                width: 80%; /* Khớp với max-width của .sanpham-container */
-                max-width: 80%; /* Giới hạn tối đa giống .sanpham-container */
+                height: 200px;
+                margin-top: 60px;
+                width: 80%;
+                max-width: 80%;
                 margin-left: auto;
                 margin-right: auto;
             }
@@ -576,6 +585,9 @@
 </head>
 <body>
     <form id="form1" runat="server">
+        <!-- Biến ẩn để kiểm tra trạng thái đăng nhập -->
+        <asp:HiddenField ID="hdnIsLoggedIn" runat="server" />
+
         <!-- Thanh Menu -->
         <div class="navbar">
             <a href="Home.aspx" class="logo">HOME</a>
@@ -583,14 +595,20 @@
                 <asp:DropDownList ID="ddlCategory" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlCategory_SelectedIndexChanged">
                     <asp:ListItem Text="Tất cả" Value="all"></asp:ListItem>
                 </asp:DropDownList>
+                <asp:DropDownList ID="ddlSortPrice" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlSortPrice_SelectedIndexChanged">
+                    <asp:ListItem Text="Sắp xếp giá" Value="default"></asp:ListItem>
+                    <asp:ListItem Text="Giá: Thấp đến Cao" Value="asc"></asp:ListItem>
+                    <asp:ListItem Text="Giá: Cao đến Thấp" Value="desc"></asp:ListItem>
+                </asp:DropDownList>
                 <asp:TextBox ID="txtSearch" runat="server" placeholder="Nhập thông tin cần tìm..." AutoPostBack="true" OnTextChanged="txtSearch_TextChanged"></asp:TextBox>
                 <asp:Button ID="btnSearch" runat="server" Text="🔍" OnClick="btnSearch_Click" />
             </div>
             <div class="user-info">
                 <span>Xin chào, <a href="Profile.aspx" style="color: #fff; text-decoration: none;" onmouseover="this.style.textDecoration='underline';" onmouseout="this.style.textDecoration='none';"><asp:Label ID="lblUsername" runat="server" Text="Khách"></asp:Label></a></span>
-                <asp:Button ID="btnLogout" runat="server" Text="Đăng Xuất" CssClass="logout-btn" OnClick="btnLogout_Click" />
+                <asp:Button ID="btnLogout" runat="server" Text="Đăng Xuất" CssClass="logout-btn" OnClick="btnLogout_Click" Visible="false" />
+                <a href="Login.aspx" class="login-btn" id="lnkLogin" runat="server">Đăng Nhập</a>
             </div>
-            <div class="cart" onclick="window.location.href='Cart.aspx';">
+            <div class="cart" onclick="checkLoginAndRedirectCart()">
                 GIỎ HÀNG
                 <i class="fa fa-shopping-cart"></i>
             </div>
@@ -695,20 +713,42 @@
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
         new Swiper('.swiper', {
-            loop: true, // Lặp lại banner
+            loop: true,
             autoplay: {
-                delay: 5000, // Chuyển banner sau 5 giây
-                disableOnInteraction: false, // Tiếp tục autoplay sau khi người dùng tương tác
+                delay: 5000,
+                disableOnInteraction: false,
             },
             pagination: {
                 el: '.swiper-pagination',
-                clickable: true, // Người dùng có thể nhấp vào chấm để chuyển banner
+                clickable: true,
             },
             navigation: {
                 nextEl: '.swiper-button-next',
                 prevEl: '.swiper-button-prev',
             },
         });
+
+        // Kiểm tra trạng thái đăng nhập qua AJAX
+        function checkLoginAndRedirectCart() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'CheckLoginStatus.ashx', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    console.log("Server response - isLoggedIn: " + response.isLoggedIn);
+                    if (response.isLoggedIn) {
+                        window.location.href = 'Cart.aspx';
+                    } else {
+                        alert('Vui lòng đăng nhập để xem giỏ hàng!');
+                        window.location.href = 'Login.aspx?ReturnUrl=Cart.aspx';
+                    }
+                } else if (xhr.readyState === 4) {
+                    alert('Có lỗi khi kiểm tra trạng thái đăng nhập!');
+                }
+            };
+            xhr.send();
+        }
     </script>
 </body>
 </html>

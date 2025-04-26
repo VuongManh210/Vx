@@ -114,7 +114,7 @@ namespace Vx
                 try
                 {
                     conn.Open();
-                    string countQuery = "SELECT COUNT(*) FROM Users";
+                    string countQuery = "SELECT COUNT(*) FROM Users WHERE Role != 'Admin'";
                     SqlCommand countCmd = new SqlCommand(countQuery, conn);
                     int totalRecords = (int)countCmd.ExecuteScalar();
                     int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
@@ -122,6 +122,7 @@ namespace Vx
                     string query = @"
                         SELECT UserId, Username, FullName, Email, Role, ShopId
                         FROM Users
+                        WHERE Role != 'Admin'
                         ORDER BY Username 
                         OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
                     SqlCommand cmd = new SqlCommand(query, conn);
@@ -130,6 +131,8 @@ namespace Vx
                     SqlDataAdapter da = new SqlDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     da.Fill(dt);
+
+                    System.Diagnostics.Debug.WriteLine($"LoadUsers - Total Users (non-Admin): {totalRecords}, Current Page: {UserPage}, Rows Returned: {dt.Rows.Count}");
 
                     gvUsers.DataSource = dt;
                     gvUsers.DataBind();
@@ -321,6 +324,21 @@ namespace Vx
                 try
                 {
                     conn.Open();
+                    // Kiểm tra vai trò của người dùng
+                    string roleQuery = "SELECT Role FROM Users WHERE UserId = @UserId";
+                    SqlCommand roleCmd = new SqlCommand(roleQuery, conn);
+                    roleCmd.Parameters.AddWithValue("@UserId", userId);
+                    string role = roleCmd.ExecuteScalar()?.ToString();
+
+                    System.Diagnostics.Debug.WriteLine($"btnDeleteUser_Click - UserId: {userId}, Role: {role}");
+
+                    if (role == "Admin")
+                    {
+                        ShowAlert("Không thể xóa người dùng có vai trò Admin!");
+                        return;
+                    }
+
+                    // Kiểm tra đơn hàng
                     string checkQuery = "SELECT COUNT(*) FROM Orders WHERE UserId = @UserId";
                     SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
                     checkCmd.Parameters.AddWithValue("@UserId", userId);
@@ -332,6 +350,7 @@ namespace Vx
                         return;
                     }
 
+                    // Xóa người dùng
                     string query = "DELETE FROM Users WHERE UserId = @UserId";
                     SqlCommand cmd = new SqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@UserId", userId);

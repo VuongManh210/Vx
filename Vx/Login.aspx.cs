@@ -13,7 +13,9 @@ namespace Vx
             {
                 if (Session["UserId"] != null)
                 {
-                    Response.Redirect("Home.aspx");
+                    string returnUrl = Request.QueryString["ReturnUrl"] ?? "Home.aspx";
+                    Response.Redirect(returnUrl, false);
+                    Context.ApplicationInstance.CompleteRequest();
                 }
             }
         }
@@ -38,7 +40,7 @@ namespace Vx
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@Username", username);
-                        cmd.Parameters.AddWithValue("@PasswordHash", password); // Trong thực tế, nên mã hóa password
+                        cmd.Parameters.AddWithValue("@PasswordHash", password); // Văn bản thuần, dựa trên dữ liệu mẫu
 
                         conn.Open();
                         using (SqlDataReader reader = cmd.ExecuteReader())
@@ -49,10 +51,13 @@ namespace Vx
                                 Session["Username"] = reader["Username"].ToString();
                                 Session["Role"] = reader["Role"].ToString();
 
-                                // Kiểm tra vai trò và chuyển hướng phù hợp
                                 string role = Session["Role"].ToString();
-                                string redirectUrl = role == "Admin" ? "AdminDashboard.aspx" : "Home.aspx";
-                                ShowAlertAndRedirect("Đăng nhập thành công! Chuyển đến trang chính trong 2 giây...", redirectUrl, 2000);
+                                string redirectUrl = role == "Admin" ? "AdminDashboard.aspx" :
+                                    (Request.QueryString["ReturnUrl"] ?? "Home.aspx");
+
+                                ShowAlert("Đăng nhập thành công!");
+                                Response.Redirect(redirectUrl, false);
+                                Context.ApplicationInstance.CompleteRequest();
                             }
                             else
                             {
@@ -71,12 +76,6 @@ namespace Vx
         private void ShowAlert(string message)
         {
             ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message}');", true);
-        }
-
-        private void ShowAlertAndRedirect(string message, string url, int milliseconds)
-        {
-            ScriptManager.RegisterStartupScript(this, GetType(), "alertAndRedirect",
-                $"alert('{message}'); setTimeout(function(){{window.location.href='{url}';}}, {milliseconds});", true);
         }
     }
 }

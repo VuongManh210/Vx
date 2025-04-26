@@ -14,24 +14,34 @@ namespace Vx
             get { return ViewState["CurrentPage"] != null ? (int)ViewState["CurrentPage"] : 1; }
             set { ViewState["CurrentPage"] = value; }
         }
+
+        private string SortOrder
+        {
+            get { return ViewState["SortOrder"] != null ? ViewState["SortOrder"].ToString() : "default"; }
+            set { ViewState["SortOrder"] = value; }
+        }
+
         private const int pageSize = 10;
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            // Debug Session để kiểm tra trạng thái đăng nhập
+            System.Diagnostics.Debug.WriteLine($"Page_Load Start - Session[UserId]: {(Session["UserId"] != null ? Session["UserId"].ToString() : "null")}");
+            System.Diagnostics.Debug.WriteLine($"Page_Load Start - hdnIsLoggedIn: {hdnIsLoggedIn.Value}");
+
+            // Cập nhật trạng thái đăng nhập
+            hdnIsLoggedIn.Value = (Session["UserId"] != null).ToString();
+            lblUsername.Text = Session["Username"] != null ? Session["Username"].ToString() : "Khách";
+            btnLogout.Visible = Session["UserId"] != null;
+            lnkLogin.Visible = Session["UserId"] == null;
+
+            System.Diagnostics.Debug.WriteLine($"Page_Load End - Session[UserId]: {(Session["UserId"] != null ? Session["UserId"].ToString() : "null")}");
+            System.Diagnostics.Debug.WriteLine($"Page_Load End - hdnIsLoggedIn: {hdnIsLoggedIn.Value}");
+
             if (!IsPostBack)
             {
-                if (Session["UserId"] == null || Session["Role"] == null)
-                {
-                    Response.Redirect("Login.aspx");
-                }
-
-                if (Session["Username"] != null)
-                {
-                    lblUsername.Text = Session["Username"].ToString();
-                }
-
-                LoadCategories(); // Tải danh mục từ Categories
-                LoadProducts("", "all", currentPage); // Tải tất cả sản phẩm
+                LoadCategories();
+                LoadProducts("", "all", currentPage, SortOrder);
             }
         }
 
@@ -50,11 +60,10 @@ namespace Vx
                     da.Fill(dt);
 
                     ddlCategory.DataSource = dt;
-                    ddlCategory.DataTextField = "CategoryName"; // Hiển thị tên danh mục
-                    ddlCategory.DataValueField = "CategoryId";  // Giá trị là CategoryId
+                    ddlCategory.DataTextField = "CategoryName";
+                    ddlCategory.DataValueField = "CategoryId";
                     ddlCategory.DataBind();
 
-                    // Thêm "Tất cả" vào đầu danh sách
                     ddlCategory.Items.Insert(0, new ListItem("Tất cả", "all"));
                 }
                 catch (Exception ex)
@@ -64,7 +73,7 @@ namespace Vx
             }
         }
 
-        private void LoadProducts(string searchTerm, string category, int page)
+        private void LoadProducts(string searchTerm, string category, int page, string sortOrder)
         {
             string connStr = ConfigurationManager.ConnectionStrings["MyDB"].ConnectionString;
 
@@ -83,7 +92,21 @@ namespace Vx
                 {
                     query += " AND CategoryId = @Category";
                 }
-                query += " ORDER BY ProductId OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+                if (sortOrder == "asc")
+                {
+                    query += " ORDER BY Price ASC";
+                }
+                else if (sortOrder == "desc")
+                {
+                    query += " ORDER BY Price DESC";
+                }
+                else
+                {
+                    query += " ORDER BY ProductId";
+                }
+
+                query += " OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
 
                 SqlCommand cmd = new SqlCommand(query, conn);
                 if (!string.IsNullOrEmpty(searchTerm))
@@ -128,22 +151,31 @@ namespace Vx
         {
             currentPage = 1;
             string searchTerm = txtSearch.Text.Trim();
-            LoadProducts(searchTerm, "all", currentPage);
+            LoadProducts(searchTerm, "all", currentPage, SortOrder);
         }
 
         protected void ddlCategory_SelectedIndexChanged(object sender, EventArgs e)
         {
             currentPage = 1;
-            txtSearch.Text = ""; // Xóa TextBox khi chọn danh mục
+            txtSearch.Text = "";
             string category = ddlCategory.SelectedValue;
-            LoadProducts("", category, currentPage);
+            LoadProducts("", category, currentPage, SortOrder);
+        }
+
+        protected void ddlSortPrice_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            currentPage = 1;
+            SortOrder = ddlSortPrice.SelectedValue;
+            string searchTerm = txtSearch.Text.Trim();
+            string category = string.IsNullOrEmpty(searchTerm) ? ddlCategory.SelectedValue : "all";
+            LoadProducts(searchTerm, category, currentPage, SortOrder);
         }
 
         protected void btnSearch_Click(object sender, EventArgs e)
         {
             currentPage = 1;
             string searchTerm = txtSearch.Text.Trim();
-            LoadProducts(searchTerm, "all", currentPage);
+            LoadProducts(searchTerm, "all", currentPage, SortOrder);
         }
 
         protected void btnPrevious_Click(object sender, EventArgs e)
@@ -153,7 +185,7 @@ namespace Vx
                 currentPage--;
                 string searchTerm = txtSearch.Text.Trim();
                 string category = string.IsNullOrEmpty(searchTerm) ? ddlCategory.SelectedValue : "all";
-                LoadProducts(searchTerm, category, currentPage);
+                LoadProducts(searchTerm, category, currentPage, SortOrder);
             }
         }
 
@@ -162,7 +194,7 @@ namespace Vx
             currentPage++;
             string searchTerm = txtSearch.Text.Trim();
             string category = string.IsNullOrEmpty(searchTerm) ? ddlCategory.SelectedValue : "all";
-            LoadProducts(searchTerm, category, currentPage);
+            LoadProducts(searchTerm, category, currentPage, SortOrder);
         }
 
         protected void btnThemVaoGioHang_Command(object sender, CommandEventArgs e)
@@ -170,9 +202,27 @@ namespace Vx
             if (e.CommandName == "AddToCart")
             {
                 int productId = Convert.ToInt32(e.CommandArgument);
-                string userId = Session["UserId"].ToString();
                 int quantity = 1;
 
+                // Kiểm tra đăng nhập
+                if (Session["UserId"] == null)
+                {
+                    ShowAlert("Vui lòng đăng nhập để thêm vào giỏ hàng!");
+                    Response.Redirect("Login.aspx?ReturnUrl=Home.aspx", false);
+                    Context.ApplicationInstance.CompleteRequest();
+                    return;
+                }
+
+                // Kiểm tra tồn kho
+                int latestStock = GetLatestStock(productId);
+                if (quantity > latestStock)
+                {
+                    ShowAlert($"Sản phẩm này chỉ còn {latestStock} trong kho!");
+                    return;
+                }
+
+                // Thêm vào giỏ hàng trong cơ sở dữ liệu
+                string userId = Session["UserId"].ToString();
                 AddToCart(userId, productId, quantity);
                 ShowAlert("Đã thêm sản phẩm vào giỏ hàng!");
             }
@@ -199,6 +249,12 @@ namespace Vx
                     {
                         int currentQuantity = Convert.ToInt32(result);
                         newQuantity = currentQuantity + quantity;
+                        int latestStock = GetLatestStock(productId);
+                        if (newQuantity > latestStock)
+                        {
+                            ShowAlert($"Số lượng vượt quá tồn kho ({latestStock})!");
+                            newQuantity = latestStock;
+                        }
                         string updateQuery = "UPDATE Cart SET Quantity = @Quantity WHERE UserId = @UserId AND ProductId = @ProductId";
                         SqlCommand updateCmd = new SqlCommand(updateQuery, conn);
                         updateCmd.Parameters.AddWithValue("@Quantity", newQuantity);
@@ -224,21 +280,40 @@ namespace Vx
             }
         }
 
+        private int GetLatestStock(int productId)
+        {
+            string connStr = ConfigurationManager.ConnectionStrings["MyDB"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connStr))
+            {
+                string query = "SELECT Stock FROM Products WHERE ProductId = @ProductId";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@ProductId", productId);
+
+                try
+                {
+                    conn.Open();
+                    object result = cmd.ExecuteScalar();
+                    return result != null ? Convert.ToInt32(result) : 0;
+                }
+                catch (Exception ex)
+                {
+                    ShowAlert($"Có lỗi xảy ra khi kiểm tra tồn kho: {ex.Message}");
+                    return 0;
+                }
+            }
+        }
+
         protected void btnLogout_Click(object sender, EventArgs e)
         {
             Session.Clear();
-            ShowAlertAndRedirect("Đăng xuất thành công! Chuyển đến trang đăng nhập trong 2 giây...", "Login.aspx", 2000);
+            ShowAlert("Đăng xuất thành công!");
+            Response.Redirect("Login.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
         }
 
         private void ShowAlert(string message)
         {
             ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message}');", true);
-        }
-
-        private void ShowAlertAndRedirect(string message, string url, int milliseconds)
-        {
-            ScriptManager.RegisterStartupScript(this, GetType(), "alertAndRedirect",
-                $"alert('{message}'); setTimeout(function(){{window.location.href='{url}';}}, {milliseconds});", true);
         }
     }
 }
