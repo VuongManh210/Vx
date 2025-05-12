@@ -51,6 +51,15 @@ namespace Vx
         protected global::System.Web.UI.WebControls.TextBox txtProductName;
 
         /// <summary>
+        /// lblProductNameError control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblProductNameError;
+
+        /// <summary>
         /// txtPrice control.
         /// </summary>
         /// <remarks>
@@ -58,6 +67,15 @@ namespace Vx
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox txtPrice;
+
+        /// <summary>
+        /// lblPriceError control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblPriceError;
 
         /// <summary>
         /// ddlCategory control.
@@ -69,13 +87,13 @@ namespace Vx
         protected global::System.Web.UI.WebControls.DropDownList ddlCategory;
 
         /// <summary>
-        /// ddlShop control.
+        /// lblCategoryError control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ddlShop;
+        protected global::System.Web.UI.WebControls.Label lblCategoryError;
 
         /// <summary>
         /// fuImage control.
@@ -85,6 +103,15 @@ namespace Vx
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FileUpload fuImage;
+
+        /// <summary>
+        /// lblImageError control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblImageError;
 
         /// <summary>
         /// lblCurrentImage control.
@@ -114,6 +141,15 @@ namespace Vx
         protected global::System.Web.UI.WebControls.TextBox txtDescription;
 
         /// <summary>
+        /// lblDescriptionError control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblDescriptionError;
+
+        /// <summary>
         /// txtStock control.
         /// </summary>
         /// <remarks>
@@ -121,6 +157,15 @@ namespace Vx
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox txtStock;
+
+        /// <summary>
+        /// lblStockError control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblStockError;
 
         /// <summary>
         /// btnSave control.

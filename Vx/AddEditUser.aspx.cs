@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Configuration;
-using System.Data;
 using System.Data.SqlClient;
 using System.Web.UI;
-using System.Web.UI.WebControls;
 
 namespace Vx
 {
@@ -35,44 +33,18 @@ namespace Vx
                     return;
                 }
 
-                LoadShops();
-
                 string mode = Request.QueryString["mode"];
                 if (mode == "edit" && !string.IsNullOrEmpty(Request.QueryString["id"]))
                 {
                     lblTitle.Text = "Sửa Người Dùng";
+                    btnDelete.Visible = true;
                     string userId = Request.QueryString["id"];
                     LoadUser(userId);
                 }
                 else
                 {
                     lblTitle.Text = "Thêm Người Dùng";
-                }
-            }
-        }
-
-        private void LoadShops()
-        {
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            {
-                try
-                {
-                    conn.Open();
-                    string query = "SELECT ShopId, ShopName FROM Shops ORDER BY ShopName";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    SqlDataAdapter da = new SqlDataAdapter(cmd);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-
-                    ddlShop.DataSource = dt;
-                    ddlShop.DataTextField = "ShopName";
-                    ddlShop.DataValueField = "ShopId";
-                    ddlShop.DataBind();
-                    ddlShop.Items.Insert(0, new ListItem("-- Chọn Cửa Hàng (Tùy chọn) --", ""));
-                }
-                catch (Exception ex)
-                {
-                    lblMessage.Text = $"Lỗi khi tải danh sách cửa hàng: {ex.Message}";
+                    btnDelete.Visible = false;
                 }
             }
         }
@@ -85,7 +57,7 @@ namespace Vx
                 {
                     conn.Open();
                     string query = @"
-                        SELECT Username, FullName, Email, Role, ShopId
+                        SELECT Username, FullName, Email, Role
                         FROM Users 
                         WHERE UserId = @UserId";
                     SqlCommand cmd = new SqlCommand(query, conn);
@@ -98,10 +70,6 @@ namespace Vx
                         txtFullName.Text = reader["FullName"].ToString();
                         txtEmail.Text = reader["Email"].ToString();
                         ddlRole.SelectedValue = reader["Role"].ToString();
-                        if (!reader.IsDBNull(reader.GetOrdinal("ShopId")))
-                        {
-                            ddlShop.SelectedValue = reader["ShopId"].ToString();
-                        }
                     }
                     else
                     {
@@ -132,31 +100,6 @@ namespace Vx
                     return;
                 }
 
-                int? shopId = null;
-                if (!string.IsNullOrEmpty(ddlShop.SelectedValue))
-                {
-                    if (!int.TryParse(ddlShop.SelectedValue, out int parsedShopId))
-                    {
-                        lblMessage.Text = "Cửa hàng không hợp lệ!";
-                        return;
-                    }
-                    shopId = parsedShopId;
-
-                    using (SqlConnection conn = new SqlConnection(connectionString))
-                    {
-                        conn.Open();
-                        string checkQuery = "SELECT COUNT(*) FROM Shops WHERE ShopId = @ShopId";
-                        SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
-                        checkCmd.Parameters.AddWithValue("@ShopId", shopId);
-                        int count = (int)checkCmd.ExecuteScalar();
-                        if (count == 0)
-                        {
-                            lblMessage.Text = "Cửa hàng được chọn không tồn tại!";
-                            return;
-                        }
-                    }
-                }
-
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
@@ -182,14 +125,14 @@ namespace Vx
                             return;
                         }
 
-                        string userId = Guid.NewGuid().ToString(); // Tạo UserId ngẫu nhiên
+                        string userId = Guid.NewGuid().ToString();
                         query = @"
-                            INSERT INTO Users (UserId, Username, PasswordHash, FullName, Email, Role, ShopId)
-                            VALUES (@UserId, @Username, @PasswordHash, @FullName, @Email, @Role, @ShopId)";
+                            INSERT INTO Users (UserId, Username, PasswordHash, FullName, Email, Role)
+                            VALUES (@UserId, @Username, @PasswordHash, @FullName, @Email, @Role)";
                         cmd = new SqlCommand(query, conn);
                         cmd.Parameters.AddWithValue("@UserId", userId);
                         cmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
-                        cmd.Parameters.AddWithValue("@PasswordHash", txtPassword.Text); // Nên mã hóa mật khẩu
+                        cmd.Parameters.AddWithValue("@PasswordHash", HashPassword(txtPassword.Text));
                     }
                     else
                     {
@@ -217,8 +160,7 @@ namespace Vx
                             SET Username = @Username, 
                                 FullName = @FullName, 
                                 Email = @Email, 
-                                Role = @Role, 
-                                ShopId = @ShopId";
+                                Role = @Role";
                         if (!string.IsNullOrWhiteSpace(txtPassword.Text))
                         {
                             query += ", PasswordHash = @PasswordHash";
@@ -229,14 +171,13 @@ namespace Vx
                         cmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
                         if (!string.IsNullOrWhiteSpace(txtPassword.Text))
                         {
-                            cmd.Parameters.AddWithValue("@PasswordHash", txtPassword.Text); // Nên mã hóa mật khẩu
+                            cmd.Parameters.AddWithValue("@PasswordHash", HashPassword(txtPassword.Text));
                         }
                     }
 
                     cmd.Parameters.AddWithValue("@FullName", txtFullName.Text.Trim());
                     cmd.Parameters.AddWithValue("@Email", txtEmail.Text.Trim());
                     cmd.Parameters.AddWithValue("@Role", ddlRole.SelectedValue);
-                    cmd.Parameters.AddWithValue("@ShopId", shopId.HasValue ? (object)shopId.Value : DBNull.Value);
 
                     cmd.ExecuteNonQuery();
 
@@ -247,6 +188,49 @@ namespace Vx
             catch (Exception ex)
             {
                 lblMessage.Text = $"Lỗi khi lưu người dùng: {ex.Message}";
+            }
+        }
+
+        protected void btnDelete_Click(object sender, EventArgs e)
+        {
+            if (Session["UserId"] == null || Session["Role"]?.ToString() != "Admin")
+            {
+                ShowAlert("Chỉ Admin mới có quyền xóa người dùng!");
+                Response.Redirect("Login.aspx", false);
+                return;
+            }
+
+            string userId = Request.QueryString["id"];
+            if (string.IsNullOrEmpty(userId))
+            {
+                ShowAlert("ID người dùng không hợp lệ!");
+                return;
+            }
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string query = "DELETE FROM Users WHERE UserId = @UserId";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    if (rowsAffected > 0)
+                    {
+                        ShowAlert("Xóa người dùng thành công!");
+                        Response.Redirect("AdminDashboard.aspx", false);
+                    }
+                    else
+                    {
+                        ShowAlert("Không tìm thấy người dùng để xóa!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ShowAlert($"Lỗi khi xóa người dùng: {ex.Message}");
+                }
             }
         }
 
@@ -268,9 +252,16 @@ namespace Vx
             }
         }
 
+        private string HashPassword(string password)
+        {
+            // Nên sử dụng thư viện mã hóa như BCrypt
+            return password; // Tạm thời giữ nguyên, cần cải thiện bảo mật
+        }
+
         private void ShowAlert(string message)
         {
-            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message.Replace("'", "\\'")}');", true);
+            string escapedMessage = message.Replace("'", "\\'");
+            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{escapedMessage}');", true);
         }
     }
 }

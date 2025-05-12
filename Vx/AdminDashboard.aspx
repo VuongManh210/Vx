@@ -207,6 +207,73 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
+        .btn-details {
+            background: linear-gradient(90deg, #17a2b8, #20c997);
+            color: #fff;
+        }
+
+        .btn-details:hover {
+            background: linear-gradient(90deg, #138496, #1abc9c);
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .search-container {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px 40px 10px 35px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-box:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+        }
+
+        .search-box::placeholder {
+            color: #999;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #007bff;
+            font-size: 16px;
+        }
+
+        .clear-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #dc3545;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .search-box:not(:placeholder-shown) + .search-icon + .clear-icon {
+            display: block;
+        }
+
         .pagination {
             text-align: center;
             margin-top: 20px;
@@ -280,8 +347,18 @@
         }
 
         @media (max-width: 768px) {
-            .footer-content {
+            .action-bar {
                 flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .search-container {
+                width: 100%;
+            }
+
+            .search-box {
+                width: 100%;
             }
 
             .table th, .table td {
@@ -321,9 +398,6 @@
                     <a class="nav-link" id="users-tab" data-bs-toggle="tab" href="#users" role="tab" aria-controls="users" aria-selected="false">Quản Lý Người Dùng</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="shops-tab" data-bs-toggle="tab" href="#shops" role="tab" aria-controls="shops" aria-selected="false">Quản Lý Shop</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" id="orders-tab" data-bs-toggle="tab" href="#orders" role="tab" aria-controls="orders" aria-selected="false">Quản Lý Đơn Hàng</a>
                 </li>
             </ul>
@@ -331,11 +405,20 @@
             <div class="tab-content" id="adminTabContent">
                 <div class="tab-pane fade show active" id="products" role="tabpanel" aria-labelledby="products-tab">
                     <div class="table-container">
-                        <asp:Button ID="btnAddProduct" runat="server" Text="Thêm Sản Phẩm" CssClass="btn-action btn-add mb-3" OnClick="btnAddProduct_Click" />
+                        <div class="action-bar">
+                            <asp:Button ID="btnAddProduct" runat="server" Text="Thêm Sản Phẩm" CssClass="btn-action btn-add" OnClick="btnAddProduct_Click" />
+                            <div class="search-container">
+                                <asp:TextBox ID="txtSearchProducts" runat="server" CssClass="search-box" Placeholder="Tìm theo tên sản phẩm hoặc danh mục..." AutoPostBack="true" OnTextChanged="txtSearchProducts_TextChanged" />
+                                <i class="fas fa-search search-icon"></i>
+                                <i class="fas fa-times clear-icon" onclick="clearSearch('txtSearchProducts', 'btnClearSearchProducts')"></i>
+                                <asp:Button ID="btnClearSearchProducts" runat="server" Style="display: none;" OnClick="btnClearSearchProducts_Click" />
+                            </div>
+                        </div>
                         <asp:Label ID="lblProductsMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
                         <asp:GridView ID="gvProducts" runat="server" AutoGenerateColumns="false" CssClass="table">
                             <Columns>
                                 <asp:BoundField DataField="ProductId" HeaderText="ID" />
+                                <asp:BoundField DataField="CategoryName" HeaderText="Danh Mục" />
                                 <asp:BoundField DataField="ProductName" HeaderText="Tên Sản Phẩm" />
                                 <asp:BoundField DataField="Price" HeaderText="Giá" DataFormatString="{0:N0} VNĐ" />
                                 <asp:BoundField DataField="Description" HeaderText="Mô Tả" />
@@ -357,7 +440,15 @@
 
                 <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
                     <div class="table-container">
-                        <asp:Button ID="btnAddUser" runat="server" Text="Thêm Người Dùng" CssClass="btn-action btn-add mb-3" OnClick="btnAddUser_Click" />
+                        <div class="action-bar">
+                            <asp:Button ID="btnAddUser" runat="server" Text="Thêm Người Dùng" CssClass="btn-action btn-add" OnClick="btnAddUser_Click" />
+                            <div class="search-container">
+                                <asp:TextBox ID="txtSearchUsers" runat="server" CssClass="search-box" Placeholder="Tìm theo tên đăng nhập hoặc họ tên..." AutoPostBack="true" OnTextChanged="txtSearchUsers_TextChanged" />
+                                <i class="fas fa-search search-icon"></i>
+                                <i class="fas fa-times clear-icon" onclick="clearSearch('txtSearchUsers', 'btnClearSearchUsers')"></i>
+                                <asp:Button ID="btnClearSearchUsers" runat="server" Style="display: none;" OnClick="btnClearSearchUsers_Click" />
+                            </div>
+                        </div>
                         <asp:Label ID="lblUsersMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
                         <asp:GridView ID="gvUsers" runat="server" AutoGenerateColumns="false" CssClass="table">
                             <Columns>
@@ -366,7 +457,6 @@
                                 <asp:BoundField DataField="FullName" HeaderText="Họ Tên" />
                                 <asp:BoundField DataField="Email" HeaderText="Email" />
                                 <asp:BoundField DataField="Role" HeaderText="Vai Trò" />
-                                <asp:BoundField DataField="ShopId" HeaderText="Shop ID" NullDisplayText="N/A" />
                                 <asp:TemplateField HeaderText="Hành Động">
                                     <ItemTemplate>
                                         <asp:Button ID="btnEditUser" runat="server" Text="Sửa" CssClass="btn-action btn-edit" CommandArgument='<%# Eval("UserId") %>' OnClick="btnEditUser_Click" />
@@ -382,31 +472,17 @@
                     </div>
                 </div>
 
-                <div class="tab-pane fade" id="shops" role="tabpanel" aria-labelledby="shops-tab">
-                    <div class="table-container">
-                        <asp:Button ID="btnAddShop" runat="server" Text="Thêm Shop" CssClass="btn-action btn-add mb-3" OnClick="btnAddShop_Click" />
-                        <asp:Label ID="lblShopsMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
-                        <asp:GridView ID="gvShops" runat="server" AutoGenerateColumns="false" CssClass="table">
-                            <Columns>
-                                <asp:BoundField DataField="ShopId" HeaderText="Shop ID" />
-                                <asp:BoundField DataField="ShopName" HeaderText="Tên Shop" />
-                                <asp:BoundField DataField="ProductCount" HeaderText="Số Sản Phẩm" />
-                                <asp:TemplateField HeaderText="Hành Động">
-                                    <ItemTemplate>
-                                        <asp:Button ID="btnEditShop" runat="server" Text="Sửa" CssClass="btn-action btn-edit" CommandArgument='<%# Eval("ShopId") %>' OnClick="btnEditShop_Click" />
-                                    </ItemTemplate>
-                                </asp:TemplateField>
-                            </Columns>
-                        </asp:GridView>
-                        <div class="pagination">
-                            <asp:Button ID="btnPrevShops" runat="server" Text="Trang trước" CssClass="btn-page" OnClick="btnPrevShops_Click" />
-                            <asp:Button ID="btnNextShops" runat="server" Text="Trang sau" CssClass="btn-page" OnClick="btnNextShops_Click" />
-                        </div>
-                    </div>
-                </div>
-
                 <div class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab">
                     <div class="table-container">
+                        <div class="action-bar">
+                            <div></div> <!-- Placeholder để căn chỉnh -->
+                            <div class="search-container">
+                                <asp:TextBox ID="txtSearchOrders" runat="server" CssClass="search-box" Placeholder="Tìm theo ID đơn hàng hoặc tên người đặt..." AutoPostBack="true" OnTextChanged="txtSearchOrders_TextChanged" />
+                                <i class="fas fa-search search-icon"></i>
+                                <i class="fas fa-times clear-icon" onclick="clearSearch('txtSearchOrders', 'btnClearSearchOrders')"></i>
+                                <asp:Button ID="btnClearSearchOrders" runat="server" Style="display: none;" OnClick="btnClearSearchOrders_Click" />
+                            </div>
+                        </div>
                         <asp:Label ID="lblOrdersMessage" runat="server" ForeColor="Red" CssClass="mb-3 d-block" />
                         <asp:GridView ID="gvOrders" runat="server" AutoGenerateColumns="false" CssClass="table">
                             <Columns>
@@ -419,6 +495,7 @@
                                 <asp:BoundField DataField="PhoneNumber" HeaderText="Số Điện Thoại" />
                                 <asp:TemplateField HeaderText="Hành Động">
                                     <ItemTemplate>
+                                        <asp:Button ID="btnViewDetails" runat="server" Text="Xem Chi Tiết" CssClass="btn-action btn-details" CommandArgument='<%# Eval("OrderId") %>' OnClick="btnViewDetails_Click" />
                                         <asp:Button ID="btnConfirmOrder" runat="server" Text="Xác Nhận" CssClass="btn-action btn-confirm" CommandArgument='<%# Eval("OrderId") %>' OnClick="btnConfirmOrder_Click" Visible='<%# Eval("Status").ToString() == "Pending" %>' />
                                         <asp:Button ID="btnCancelOrder" runat="server" Text="Hủy" CssClass="btn-action btn-cancel" CommandArgument='<%# Eval("OrderId") %>' OnClick="btnCancelOrder_Click" Visible='<%# Eval("Status").ToString() == "Pending" %>' OnClientClick="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này?');" />
                                     </ItemTemplate>
@@ -460,5 +537,29 @@
         </div>
     </form>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function clearSearch(textBoxId, buttonId) {
+            var textBox = document.getElementById(textBoxId);
+            if (textBox) {
+                textBox.value = '';
+                textBox.dispatchEvent(new Event('input')); // Kích hoạt sự kiện input để ẩn clear-icon
+                var button = document.getElementById(buttonId);
+                if (button) {
+                    button.click(); // Kích hoạt PostBack để reset dữ liệu
+                }
+            }
+        }
+
+        // Đảm bảo clear-icon hiển thị/ẩn dựa trên nội dung
+        document.addEventListener('DOMContentLoaded', function () {
+            var searchBoxes = document.querySelectorAll('.search-box');
+            searchBoxes.forEach(function (box) {
+                box.addEventListener('input', function () {
+                    var clearIcon = box.nextElementSibling.nextElementSibling;
+                    clearIcon.style.display = box.value ? 'block' : 'none';
+                });
+            });
+        });
+    </script>
 </body>
 </html>

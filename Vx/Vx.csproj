@@ -169,6 +169,7 @@
     <Content Include="Home.aspx" />
     <Content Include="Login.aspx" />
     <Content Include="OrderDetails.aspx" />
+    <Content Include="OrderDetailsAdmin.aspx" />
     <Content Include="Profile.aspx" />
     <Content Include="QLBH.aspx" />
     <Content Include="Register.aspx" />
@@ -317,6 +318,13 @@
     </Compile>
     <Compile Include="OrderDetails.aspx.designer.cs">
       <DependentUpon>OrderDetails.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="OrderDetailsAdmin.aspx.cs">
+      <DependentUpon>OrderDetailsAdmin.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="OrderDetailsAdmin.aspx.designer.cs">
+      <DependentUpon>OrderDetailsAdmin.aspx</DependentUpon>
     </Compile>
     <Compile Include="Profile.aspx.cs">
       <DependentUpon>Profile.aspx</DependentUpon>

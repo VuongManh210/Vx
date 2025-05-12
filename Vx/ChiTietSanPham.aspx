@@ -23,7 +23,7 @@
             min-height: 100vh; /* Chiều cao tối thiểu bằng viewport */
         }
 
-        /* Thanh menu ngang (giữ nguyên từ Home.aspx) */
+        /* Thanh menu ngang */
         .navbar {
             background: linear-gradient(90deg, #007bff, #00c4cc);
             padding: 0 20px;
@@ -186,6 +186,32 @@
             }
         }
 
+        /* Nút quay lại */
+        .btn-back {
+            position: fixed;
+            top: 80px; /* Dưới navbar */
+            left: 20px;
+            background: linear-gradient(90deg, #6c757d, #829099);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 18px;
+            z-index: 999;
+            transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-back:hover {
+            background: linear-gradient(90deg, #5a6268, #6c757d);
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
         /* Nội dung chi tiết sản phẩm */
         .container {
             padding-top: 100px;
@@ -323,9 +349,123 @@
                 width: 100%;
                 padding: 12px;
             }
+
+            .btn-back {
+                top: 70px; /* Điều chỉnh để không che navbar */
+                left: 10px;
+            }
         }
 
-        /* Footer (giữ nguyên từ Home.aspx) */
+        /* Popup nhập thông tin giao hàng */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .modal-content h3 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+
+        .modal-content label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .modal-content input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.3s ease;
+            flex: 1;
+            line-height: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 44px;
+        }
+
+        .btn-confirm {
+            background: linear-gradient(90deg, #28a745, #34c759);
+            color: #fff;
+        }
+
+        .btn-confirm:hover {
+            background: linear-gradient(90deg, #218838, #2ba84a);
+            transform: scale(1.05);
+        }
+
+        .btn-cancel {
+            background: linear-gradient(90deg, #dc3545, #e4606d);
+            color: #fff;
+        }
+
+        .btn-cancel:hover {
+            background: linear-gradient(90deg, #c82333, #d6384e);
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .modal-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .modal-buttons button {
+                padding: 12px 15px;
+                min-height: 48px;
+            }
+        }
+
+        /* Footer */
         .footer {
             background: linear-gradient(135deg, #0056b3, #00c4cc);
             color: #fff;
@@ -407,119 +547,15 @@
                 font-size: 12px;
             }
         }
-
-        /* Popup nhập thông tin giao hàng */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1001;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
-
-        .modal-content h3 {
-            font-size: 22px;
-            margin-bottom: 20px;
-            text-align: center;
-            color: #333;
-        }
-
-        .modal-content label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #555;
-        }
-
-        .modal-content input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            outline: none;
-            box-sizing: border-box;
-        }
-
-        .modal-content input:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .modal-buttons button {
-            padding: 12px 20px; /* Tăng padding trên/dưới từ 10px lên 12px để nút cao hơn một chút */
-            border: none;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 14px; /* Đảm bảo kích thước chữ phù hợp */
-            cursor: pointer;
-            transition: background 0.3s ease, transform 0.3s ease;
-            flex: 1;
-            line-height: 1; /* Đảm bảo chiều cao không bị ảnh hưởng bởi line-height mặc định */
-            display: flex; /* Sử dụng flex để căn giữa nội dung */
-            justify-content: center;
-            align-items: center;
-            min-height: 44px; /* Đặt chiều cao tối thiểu để đảm bảo dễ bấm trên di động */
-        }
-
-        .btn-confirm {
-            background: linear-gradient(90deg, #28a745, #34c759);
-            color: #fff;
-        }
-
-        .btn-confirm:hover {
-            background: linear-gradient(90deg, #218838, #2ba84a);
-            transform: scale(1.05);
-        }
-
-        .btn-cancel {
-            background: linear-gradient(90deg, #dc3545, #e4606d);
-            color: #fff;
-        }
-
-        .btn-cancel:hover {
-            background: linear-gradient(90deg, #c82333, #d6384e);
-            transform: scale(1.05);
-        }
-
-        @media (max-width: 768px) {
-            .modal-buttons {
-                flex-direction: column; /* Xếp dọc các nút trên thiết bị di động */
-                gap: 8px;
-            }
-
-            .modal-buttons button {
-                padding: 12px 15px; /* Giảm padding ngang một chút trên di động */
-                min-height: 48px; /* Tăng chiều cao tối thiểu trên di động để dễ bấm */
-            }
-        }
     </style>
 </head>
 <body>
     <form id="form1" runat="server">
+        <!-- Nút quay lại -->
+        <asp:LinkButton ID="btnBack" runat="server" CssClass="btn-back" OnClick="btnBack_Click">
+            <i class="fa fa-arrow-left"></i>
+        </asp:LinkButton>
+
         <!-- Thanh Menu -->
         <div class="navbar">
             <a href="Home.aspx" class="logo">HOME</a>
@@ -544,7 +580,7 @@
         <div class="container">
             <div class="product-details">
                 <div class="product-image">
-                    <img id="imgSanPham" runat="server" alt="Hình ảnh sản phẩm" />
+                    <img id="imgSanPham" runat="server" src="images/placeholder.png" alt="Hình ảnh sản phẩm" />
                 </div>
                 <div class="product-info">
                     <h2 id="lblTenSanPham" runat="server"></h2>
@@ -618,4 +654,4 @@
         }
     </script>
 </body>
-</html>
+</html>s

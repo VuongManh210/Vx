@@ -25,20 +25,9 @@ namespace Vx
         {
             if (!IsPostBack)
             {
-                if (Session["UserId"] == null)
-                {
-                    Response.Redirect("Login.aspx");
-                    return;
-                }
-
-                if (Session["Username"] != null)
-                {
-                    lblUsername.Text = Session["Username"].ToString();
-                }
-                else
-                {
-                    lblUsername.Text = "Khách";
-                }
+                // Cập nhật thông tin người dùng (nếu đã đăng nhập)
+                lblUsername.Text = Session["Username"] != null ? Session["Username"].ToString() : "Khách";
+                btnLogout.Visible = Session["UserId"] != null;
 
                 LoadProductDetails();
             }
@@ -50,7 +39,7 @@ namespace Vx
             if (string.IsNullOrEmpty(productId) || !int.TryParse(productId, out int id))
             {
                 ShowAlert("Sản phẩm không tồn tại!");
-                Response.Redirect("Home.aspx");
+                Response.Redirect("Home.aspx", false);
                 return;
             }
 
@@ -96,7 +85,7 @@ namespace Vx
                     else
                     {
                         ShowAlert("Sản phẩm không tồn tại!");
-                        Response.Redirect("Home.aspx");
+                        Response.Redirect("Home.aspx", false);
                     }
                     reader.Close();
                 }
@@ -109,7 +98,13 @@ namespace Vx
 
         protected void btnTang_Click(object sender, EventArgs e)
         {
-            int quantity = int.Parse(txtSoLuong.Text);
+            int quantity;
+            if (!int.TryParse(txtSoLuong.Text, out quantity) || quantity < 1)
+            {
+                quantity = 1;
+                txtSoLuong.Text = "1";
+            }
+
             int stock = GetStock(ProductId);
             if (quantity < stock)
             {
@@ -124,7 +119,13 @@ namespace Vx
 
         protected void btnGiam_Click(object sender, EventArgs e)
         {
-            int quantity = int.Parse(txtSoLuong.Text);
+            int quantity;
+            if (!int.TryParse(txtSoLuong.Text, out quantity) || quantity < 1)
+            {
+                quantity = 1;
+                txtSoLuong.Text = "1";
+            }
+
             if (quantity > 1)
             {
                 quantity--;
@@ -137,11 +138,17 @@ namespace Vx
             if (Session["UserId"] == null)
             {
                 ShowAlert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
-                Response.Redirect("Login.aspx");
+                Response.Redirect("Login.aspx?ReturnUrl=ChiTietSanPham.aspx?id=" + ProductId, false);
                 return;
             }
 
-            int quantity = int.Parse(txtSoLuong.Text);
+            int quantity;
+            if (!int.TryParse(txtSoLuong.Text, out quantity) || quantity < 1)
+            {
+                ShowAlert("Số lượng không hợp lệ!");
+                return;
+            }
+
             int stock = GetStock(ProductId);
             if (quantity > stock)
             {
@@ -181,6 +188,13 @@ namespace Vx
 
         protected void btnConfirmOrder_Click(object sender, EventArgs e)
         {
+            if (Session["UserId"] == null)
+            {
+                ShowAlert("Vui lòng đăng nhập để đặt hàng!");
+                Response.Redirect("Login.aspx?ReturnUrl=ChiTietSanPham.aspx?id=" + ProductId, false);
+                return;
+            }
+
             // Kiểm tra thông tin giao hàng
             if (string.IsNullOrWhiteSpace(txtModalHoTen.Text))
             {
@@ -206,15 +220,13 @@ namespace Vx
                 return;
             }
 
-            string userId = Session["UserId"]?.ToString();
-            if (string.IsNullOrEmpty(userId))
+            int quantity;
+            if (!int.TryParse(txtSoLuong.Text, out quantity) || quantity < 1)
             {
-                ShowAlert("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!");
-                Response.Redirect("Login.aspx");
+                ShowAlert("Số lượng không hợp lệ!");
                 return;
             }
 
-            int quantity = int.Parse(txtSoLuong.Text);
             int stock = GetStock(ProductId);
             if (quantity > stock)
             {
@@ -222,6 +234,7 @@ namespace Vx
                 return;
             }
 
+            string userId = Session["UserId"].ToString();
             string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
             if (string.IsNullOrEmpty(connStr))
             {
@@ -284,7 +297,7 @@ namespace Vx
 
                         // Hiển thị thông báo và chuyển hướng
                         ShowAlert("Đặt hàng thành công! Cảm ơn bạn đã mua sắm.");
-                        Response.Redirect($"OrderDetails.aspx?OrderId={orderId}");
+                        Response.Redirect($"OrderDetails.aspx?OrderId={orderId}", false);
                     }
                     catch (Exception ex)
                     {
@@ -300,16 +313,30 @@ namespace Vx
             }
         }
 
+        protected void btnBack_Click(object sender, EventArgs e)
+        {
+            Response.Redirect("Home.aspx", false);
+        }
+
         private int GetStock(int productId)
         {
             string connStr = ConfigurationManager.ConnectionStrings["MyDB"]?.ConnectionString;
             using (SqlConnection conn = new SqlConnection(connStr))
             {
-                conn.Open();
-                string query = "SELECT Stock FROM Products WHERE ProductId = @ProductId";
-                SqlCommand cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@ProductId", productId);
-                return Convert.ToInt32(cmd.ExecuteScalar());
+                try
+                {
+                    conn.Open();
+                    string query = "SELECT Stock FROM Products WHERE ProductId = @ProductId";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@ProductId", productId);
+                    object result = cmd.ExecuteScalar();
+                    return result != null ? Convert.ToInt32(result) : 0;
+                }
+                catch (Exception ex)
+                {
+                    ShowAlert($"Có lỗi khi kiểm tra tồn kho: {ex.Message}");
+                    return 0;
+                }
             }
         }
 
@@ -317,19 +344,20 @@ namespace Vx
         {
             Session.Clear();
             Session.Abandon();
-            Response.Redirect("Login.aspx");
+            Response.Redirect("Login.aspx", false);
         }
 
         protected void btnSearch_Click(object sender, EventArgs e)
         {
             string searchText = txtSearch.Text.Trim();
             string category = ddlCategory.SelectedValue;
-            Response.Redirect($"Home.aspx?search={searchText}&category={category}");
+            Response.Redirect($"Home.aspx?search={searchText}&category={category}", false);
         }
 
         private void ShowAlert(string message)
         {
-            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message}');", true);
+            string escapedMessage = message.Replace("'", "\\'");
+            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{escapedMessage}');", true);
         }
     }
 }

@@ -23,15 +23,15 @@ namespace Vx
                 if (Session["UserId"] == null || Session["Role"] == null)
                 {
                     ShowAlert("Vui lòng đăng nhập để tiếp tục!");
-                    Response.Redirect("Login.aspx");
+                    Response.Redirect("Login.aspx", false);
                     return;
                 }
 
                 string role = Session["Role"].ToString();
-                if (role != "Admin" && role != "ShopOwner")
+                if (role != "Admin")
                 {
                     ShowAlert("Bạn không có quyền truy cập trang này!");
-                    Response.Redirect("Home.aspx");
+                    Response.Redirect("Home.aspx", false);
                     return;
                 }
 
@@ -42,7 +42,6 @@ namespace Vx
                 }
 
                 LoadCategories();
-                LoadShops();
 
                 string mode = Request.QueryString["mode"];
                 if (mode == "edit" && !string.IsNullOrEmpty(Request.QueryString["id"]))
@@ -51,7 +50,7 @@ namespace Vx
                     if (!int.TryParse(Request.QueryString["id"], out int productId))
                     {
                         ShowAlert("ID sản phẩm không hợp lệ!");
-                        Response.Redirect("AdminDashboard.aspx");
+                        Response.Redirect("AdminDashboard.aspx", false);
                         return;
                     }
                     LoadProduct(productId);
@@ -59,22 +58,6 @@ namespace Vx
                 else
                 {
                     lblTitle.Text = "Thêm Sản Phẩm";
-                    // Nếu là ShopOwner, tự động chọn ShopId và vô hiệu hóa dropdown
-                    if (role == "ShopOwner")
-                    {
-                        string userId = Session["UserId"].ToString();
-                        string shopId = GetShopIdByUserId(userId);
-                        if (!string.IsNullOrEmpty(shopId))
-                        {
-                            ddlShop.SelectedValue = shopId;
-                            ddlShop.Enabled = false;
-                        }
-                        else
-                        {
-                            ShowAlert("Không tìm thấy cửa hàng liên kết với tài khoản của bạn!");
-                            Response.Redirect("AdminDashboard.aspx");
-                        }
-                    }
                 }
             }
         }
@@ -92,6 +75,12 @@ namespace Vx
                     DataTable dt = new DataTable();
                     da.Fill(dt);
 
+                    if (dt.Rows.Count == 0)
+                    {
+                        ShowAlert("Không tìm thấy danh mục nào trong cơ sở dữ liệu!");
+                        return;
+                    }
+
                     ddlCategory.DataSource = dt;
                     ddlCategory.DataTextField = "CategoryName";
                     ddlCategory.DataValueField = "CategoryId";
@@ -105,53 +94,6 @@ namespace Vx
             }
         }
 
-        private void LoadShops()
-        {
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            {
-                try
-                {
-                    conn.Open();
-                    string query = "SELECT ShopId, ShopName FROM Shops ORDER BY ShopName";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    SqlDataAdapter da = new SqlDataAdapter(cmd);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-
-                    ddlShop.DataSource = dt;
-                    ddlShop.DataTextField = "ShopName";
-                    ddlShop.DataValueField = "ShopId";
-                    ddlShop.DataBind();
-                    ddlShop.Items.Insert(0, new ListItem("-- Chọn Cửa Hàng --", ""));
-                }
-                catch (Exception ex)
-                {
-                    ShowAlert($"Lỗi khi tải danh sách cửa hàng: {ex.Message}");
-                }
-            }
-        }
-
-        private string GetShopIdByUserId(string userId)
-        {
-            using (SqlConnection conn = new SqlConnection(connectionString))
-            {
-                try
-                {
-                    conn.Open();
-                    string query = "SELECT ShopId FROM Users WHERE UserId = @UserId AND Role = 'ShopOwner'";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@UserId", userId);
-                    object result = cmd.ExecuteScalar();
-                    return result?.ToString();
-                }
-                catch (Exception ex)
-                {
-                    ShowAlert($"Lỗi khi lấy ShopId: {ex.Message}");
-                    return null;
-                }
-            }
-        }
-
         private void LoadProduct(int productId)
         {
             using (SqlConnection conn = new SqlConnection(connectionString))
@@ -160,9 +102,9 @@ namespace Vx
                 {
                     conn.Open();
                     string query = @"
-                        SELECT ProductName, Price, CategoryId, ShopId, ImageUrl, Description, Stock 
+                        SELECT ProductName, Price, CategoryId, ImageUrl, Description, Stock 
                         FROM Products 
-                        WHERE ProductId = @ProductId";
+                        WHERE ProductId = @ProductId AND IsDeleted = 0";
                     SqlCommand cmd = new SqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@ProductId", productId);
                     SqlDataReader reader = cmd.ExecuteReader();
@@ -170,12 +112,8 @@ namespace Vx
                     if (reader.Read())
                     {
                         txtProductName.Text = reader["ProductName"].ToString();
-                        txtPrice.Text = reader["Price"].ToString();
+                        txtPrice.Text = Convert.ToDecimal(reader["Price"]).ToString("F2");
                         ddlCategory.SelectedValue = reader["CategoryId"].ToString();
-                        if (!reader.IsDBNull(reader.GetOrdinal("ShopId")))
-                        {
-                            ddlShop.SelectedValue = reader["ShopId"].ToString();
-                        }
                         string imageUrl = reader["ImageUrl"].ToString();
                         if (!string.IsNullOrEmpty(imageUrl))
                         {
@@ -185,23 +123,11 @@ namespace Vx
                         }
                         txtDescription.Text = reader["Description"].ToString();
                         txtStock.Text = reader["Stock"].ToString();
-
-                        // Nếu là ShopOwner, kiểm tra quyền chỉnh sửa
-                        if (Session["Role"].ToString() == "ShopOwner")
-                        {
-                            string userShopId = GetShopIdByUserId(Session["UserId"].ToString());
-                            if (userShopId != ddlShop.SelectedValue)
-                            {
-                                ShowAlert("Bạn chỉ có thể chỉnh sửa sản phẩm thuộc cửa hàng của mình!");
-                                Response.Redirect("AdminDashboard.aspx");
-                            }
-                            ddlShop.Enabled = false;
-                        }
                     }
                     else
                     {
                         ShowAlert("Không tìm thấy sản phẩm!");
-                        Response.Redirect("AdminDashboard.aspx");
+                        Response.Redirect("AdminDashboard.aspx", false);
                     }
                 }
                 catch (Exception ex)
@@ -211,88 +137,165 @@ namespace Vx
             }
         }
 
+        private bool IsProductNameExists(string productName, string categoryId, int? productId = null)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string query = @"
+                        SELECT COUNT(*) 
+                        FROM Products 
+                        WHERE ProductName = @ProductName 
+                        AND CategoryId = @CategoryId 
+                        AND IsDeleted = 0";
+                    if (productId.HasValue)
+                    {
+                        query += " AND ProductId != @ProductId";
+                    }
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@ProductName", productName);
+                    cmd.Parameters.AddWithValue("@CategoryId", categoryId);
+                    if (productId.HasValue)
+                    {
+                        cmd.Parameters.AddWithValue("@ProductId", productId.Value);
+                    }
+                    int count = (int)cmd.ExecuteScalar();
+                    return count > 0;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+        }
+
         protected void btnSave_Click(object sender, EventArgs e)
         {
+            // Reset thông báo lỗi
+            lblProductNameError.Visible = false;
+            lblPriceError.Visible = false;
+            lblCategoryError.Visible = false;
+            lblImageError.Visible = false;
+            lblDescriptionError.Visible = false;
+            lblStockError.Visible = false;
+
             // Kiểm tra hợp lệ dữ liệu
-            if (string.IsNullOrWhiteSpace(txtProductName.Text) ||
-                string.IsNullOrWhiteSpace(txtPrice.Text) ||
-                string.IsNullOrWhiteSpace(ddlCategory.SelectedValue))
+            bool isValid = true;
+            string productName = txtProductName.Text.Trim();
+            if (string.IsNullOrWhiteSpace(productName))
             {
-                ShowAlert("Tên sản phẩm, giá và danh mục không được để trống!");
-                return;
+                lblProductNameError.Text = "Tên sản phẩm không được để trống!";
+                lblProductNameError.Visible = true;
+                isValid = false;
+            }
+            else if (productName.Length > 150)
+            {
+                lblProductNameError.Text = "Tên sản phẩm không được vượt quá 150 ký tự!";
+                lblProductNameError.Visible = true;
+                isValid = false;
             }
 
             if (!decimal.TryParse(txtPrice.Text, out decimal price) || price < 0)
             {
-                ShowAlert("Giá phải là số không âm!");
-                return;
+                lblPriceError.Text = "Giá phải là số không âm!";
+                lblPriceError.Visible = true;
+                isValid = false;
+            }
+
+            if (string.IsNullOrWhiteSpace(ddlCategory.SelectedValue))
+            {
+                lblCategoryError.Text = "Vui lòng chọn danh mục!";
+                lblCategoryError.Visible = true;
+                isValid = false;
+            }
+
+            string description = txtDescription.Text.Trim();
+            if (description.Length > 1000)
+            {
+                lblDescriptionError.Text = "Mô tả không được vượt quá 1000 ký tự!";
+                lblDescriptionError.Visible = true;
+                isValid = false;
             }
 
             if (!int.TryParse(txtStock.Text, out int stock) || stock < 0)
             {
-                ShowAlert("Số lượng tồn kho phải là số không âm!");
-                return;
+                lblStockError.Text = "Số lượng tồn kho phải là số không âm!";
+                lblStockError.Visible = true;
+                isValid = false;
+            }
+
+            // Kiểm tra trùng tên sản phẩm trong cùng danh mục
+            string mode = Request.QueryString["mode"];
+            int? productId = null;
+            if (mode == "edit" && int.TryParse(Request.QueryString["id"], out int parsedProductId))
+            {
+                productId = parsedProductId;
+            }
+            if (IsProductNameExists(productName, ddlCategory.SelectedValue, productId))
+            {
+                lblProductNameError.Text = "Tên sản phẩm đã tồn tại trong danh mục này!";
+                lblProductNameError.Visible = true;
+                isValid = false;
             }
 
             // Kiểm tra file upload
             string imageUrl = null;
+            string oldImageUrl = null;
             if (fuImage.HasFile)
             {
                 string fileExtension = Path.GetExtension(fuImage.FileName).ToLower();
                 if (!AllowedExtensions.Contains(fileExtension))
                 {
-                    ShowAlert("Chỉ hỗ trợ file .jpg, .jpeg, .png!");
-                    return;
+                    lblImageError.Text = "Chỉ hỗ trợ file .jpg, .jpeg, .png!";
+                    lblImageError.Visible = true;
+                    isValid = false;
                 }
+                else if (fuImage.PostedFile.ContentLength > MaxFileSize)
+                {
+                    lblImageError.Text = "Kích thước file không được vượt quá 5MB!";
+                    lblImageError.Visible = true;
+                    isValid = false;
+                }
+                else
+                {
+                    try
+                    {
+                        string originalFileName = Path.GetFileNameWithoutExtension(fuImage.FileName);
+                        string fileName = $"{Guid.NewGuid().ToString()}_{originalFileName}{fileExtension}";
+                        string savePath = Path.Combine(Server.MapPath("~/images/"), fileName);
+                        fuImage.SaveAs(savePath);
+                        imageUrl = $"images/{fileName}";
 
-                if (fuImage.PostedFile.ContentLength > MaxFileSize)
-                {
-                    ShowAlert("Kích thước file không được vượt quá 5MB!");
-                    return;
-                }
-
-                try
-                {
-                    // Giữ tên file gốc, thêm GUID để tránh trùng
-                    string originalFileName = Path.GetFileNameWithoutExtension(fuImage.FileName);
-                    string fileName = $"{Guid.NewGuid().ToString()}_{originalFileName}{fileExtension}";
-                    string savePath = Path.Combine(Server.MapPath("~/images/"), fileName);
-                    fuImage.SaveAs(savePath);
-                    imageUrl = $"images/{fileName}"; // Ví dụ: images/abc123_laptop_dell_xps_13.jpg
-                }
-                catch (Exception ex)
-                {
-                    ShowAlert($"Lỗi khi lưu hình ảnh: {ex.Message}");
-                    return;
+                        // Lưu đường dẫn hình ảnh cũ để xóa sau
+                        if (mode == "edit" && imgCurrent.Visible)
+                        {
+                            oldImageUrl = imgCurrent.ImageUrl?.Replace("~/", "");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lblImageError.Text = $"Lỗi khi lưu hình ảnh: {ex.Message}";
+                        lblImageError.Visible = true;
+                        isValid = false;
+                    }
                 }
             }
-            else if (Request.QueryString["mode"] == "add")
+            else if (mode == "add")
             {
-                ShowAlert("Vui lòng chọn hình ảnh cho sản phẩm mới!");
+                lblImageError.Text = "Vui lòng chọn hình ảnh cho sản phẩm mới!";
+                lblImageError.Visible = true;
+                isValid = false;
+            }
+            else if (mode == "edit")
+            {
+                imageUrl = imgCurrent.ImageUrl?.Replace("~/", "");
+            }
+
+            if (!isValid)
+            {
                 return;
-            }
-
-            string mode = Request.QueryString["mode"];
-            int? shopId = null;
-            if (!string.IsNullOrEmpty(ddlShop.SelectedValue))
-            {
-                if (!int.TryParse(ddlShop.SelectedValue, out int parsedShopId))
-                {
-                    ShowAlert("Cửa hàng không hợp lệ!");
-                    return;
-                }
-                shopId = parsedShopId;
-            }
-
-            // Kiểm tra quyền của ShopOwner
-            if (Session["Role"].ToString() == "ShopOwner")
-            {
-                string userShopId = GetShopIdByUserId(Session["UserId"].ToString());
-                if (shopId.ToString() != userShopId)
-                {
-                    ShowAlert("Bạn chỉ có thể thêm/sửa sản phẩm cho cửa hàng của mình!");
-                    return;
-                }
             }
 
             using (SqlConnection conn = new SqlConnection(connectionString))
@@ -306,39 +309,45 @@ namespace Vx
                     if (mode == "add")
                     {
                         query = @"
-                            INSERT INTO Products (ProductName, Price, CategoryId, ShopId, ImageUrl, Description, Stock, CreatedDate)
-                            VALUES (@ProductName, @Price, @CategoryId, @ShopId, @ImageUrl, @Description, @Stock, @CreatedDate)";
+                            INSERT INTO Products (ProductName, Price, CategoryId, ImageUrl, Description, Stock, CreatedDate)
+                            VALUES (@ProductName, @Price, @CategoryId, @ImageUrl, @Description, @Stock, @CreatedDate)";
                         cmd = new SqlCommand(query, conn);
                     }
                     else
                     {
-                        if (!int.TryParse(Request.QueryString["id"], out int productId))
-                        {
-                            ShowAlert("ID sản phẩm không hợp lệ!");
-                            return;
-                        }
                         query = @"
                             UPDATE Products 
-                            SET ProductName = @ProductName, Price = @Price, CategoryId = @CategoryId, ShopId = @ShopId, 
+                            SET ProductName = @ProductName, Price = @Price, CategoryId = @CategoryId, 
                                 ImageUrl = @ImageUrl, Description = @Description, Stock = @Stock
                             WHERE ProductId = @ProductId";
                         cmd = new SqlCommand(query, conn);
-                        cmd.Parameters.AddWithValue("@ProductId", productId);
-
-                        // Nếu không upload ảnh mới, giữ ảnh cũ
-                        if (!fuImage.HasFile)
-                        {
-                            string currentImage = imgCurrent.ImageUrl?.Replace("~/", "");
-                            imageUrl = string.IsNullOrEmpty(currentImage) ? null : currentImage;
-                        }
+                        cmd.Parameters.AddWithValue("@ProductId", productId.Value);
                     }
 
-                    cmd.Parameters.AddWithValue("@ProductName", txtProductName.Text.Trim());
+                    cmd.Parameters.AddWithValue("@ProductName", productName);
                     cmd.Parameters.AddWithValue("@Price", price);
                     cmd.Parameters.AddWithValue("@CategoryId", ddlCategory.SelectedValue);
-                    cmd.Parameters.AddWithValue("@ShopId", shopId.HasValue ? (object)shopId.Value : DBNull.Value);
-                    cmd.Parameters.AddWithValue("@ImageUrl", (object)imageUrl ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Description", txtDescription.Text.Trim());
+
+                    // Xử lý ImageUrl
+                    if (string.IsNullOrEmpty(imageUrl))
+                    {
+                        cmd.Parameters.AddWithValue("@ImageUrl", DBNull.Value);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue("@ImageUrl", imageUrl);
+                    }
+
+                    // Xử lý Description
+                    if (string.IsNullOrEmpty(description))
+                    {
+                        cmd.Parameters.AddWithValue("@Description", DBNull.Value);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue("@Description", description);
+                    }
+
                     cmd.Parameters.AddWithValue("@Stock", stock);
                     if (mode == "add")
                     {
@@ -347,8 +356,18 @@ namespace Vx
 
                     cmd.ExecuteNonQuery();
 
+                    // Xóa hình ảnh cũ nếu có
+                    if (!string.IsNullOrEmpty(oldImageUrl) && !string.IsNullOrEmpty(imageUrl))
+                    {
+                        string oldImagePath = Server.MapPath($"~/{oldImageUrl}");
+                        if (File.Exists(oldImagePath))
+                        {
+                            File.Delete(oldImagePath);
+                        }
+                    }
+
                     ShowAlert(mode == "add" ? "Thêm sản phẩm thành công!" : "Cập nhật sản phẩm thành công!");
-                    Response.Redirect("AdminDashboard.aspx");
+                    Response.Redirect("AdminDashboard.aspx", false);
                 }
                 catch (Exception ex)
                 {
@@ -359,12 +378,12 @@ namespace Vx
 
         protected void btnBack_Click(object sender, EventArgs e)
         {
-            Response.Redirect("AdminDashboard.aspx");
+            Response.Redirect("AdminDashboard.aspx", false);
         }
 
         private void ShowAlert(string message)
         {
-            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message}');", true);
+            ScriptManager.RegisterStartupScript(this, GetType(), "alert", $"alert('{message.Replace("'", "\\'")}');", true);
         }
     }
 }
